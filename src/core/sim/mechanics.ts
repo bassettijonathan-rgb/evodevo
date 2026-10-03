@@ -22,12 +22,16 @@ import type { CellStore } from './cells';
 
 /** Uniform-grid spatial hash with counting-sort buckets. */
 export class SpatialHash {
-  private binSize = 1;
-  private bx = 0;
-  private by = 0;
-  private start = new Int32Array(1);
-  private items = new Int32Array(0);
-  private binOf = new Int32Array(0);
+  binSize = 1;
+  /** Bins in x and y. */
+  bx = 0;
+  by = 0;
+  /** Cells of bin b are items[start[b] .. start[b+1]−1]. */
+  start = new Int32Array(1);
+  items = new Int32Array(0);
+  /** Bin of each cell. */
+  binOf = new Int32Array(0);
+  private fill = new Int32Array(0);
 
   /** Bucket all live cells. Domain is [0, width] × [0, height]; points outside are clamped. */
   build(cells: CellStore, width: number, height: number, binSize: number): void {
@@ -48,7 +52,9 @@ export class SpatialHash {
       start[b + 1]++;
     }
     for (let b = 0; b < nb; b++) start[b + 1] += start[b];
-    const fill = start.slice(0, nb);
+    if (this.fill.length < nb) this.fill = new Int32Array(nb);
+    const fill = this.fill;
+    fill.set(start.subarray(0, nb));
     for (let c = 0; c < cells.n; c++) this.items[fill[this.binOf[c]]++] = c;
   }
 
@@ -111,7 +117,7 @@ export function adhesion(grn: CompiledGRN, cells: CellStore, cfg: SimConfig, c: 
 }
 
 export class Mechanics {
-  private hash = new SpatialHash();
+  private readonly hash = new SpatialHash();
   private fx = new Float64Array(0);
   private fy = new Float64Array(0);
 
@@ -130,44 +136,70 @@ export class Mechanics {
     }
     const dt = cfg.dt / cfg.mechanicsSubsteps;
     const mob = dt / cfg.drag;
-    const kick = Math.sqrt((2 * cfg.motility * dt) / cfg.drag);
-    const { fx, fy } = this;
-    const { px, py, radius } = cells;
-    const kRep = cfg.repulsion, range = cfg.adhesionRange;
+    // Brownian (motility) kicks are drawn once per developmental step with the
+    // full-step variance 2·k_BT·Δt/γ, then the force sub-steps relax any overlaps
+    // they create. Same statistics as kicking every sub-step, 5× fewer draws.
+    const kick = Math.sqrt((2 * cfg.motility * cfg.dt) / cfg.drag);
+    const { fx, fy, hash } = this;
+    const { px, py, radius, x } = cells;
+    const kRep = cfg.repulsion, range = cfg.adhesionRange, A0 = cfg.adhesionBase;
+    const G = grn.G, adh = grn.adhIdx, nAdh = adh.length, J = grn.binding;
+    const cut = cutoff(cells, cfg);
+    const W = this.width, H = this.height;
 
     for (let s = 0; s < cfg.mechanicsSubsteps; s++) {
       const n = cells.n;
       fx.fill(0, 0, n);
       fy.fill(0, 0, n);
-      this.hash.build(cells, this.width, this.height, cutoff(cells, cfg));
-      this.hash.forEachPair(cells, (a, b) => {
-        let dx = px[b] - px[a];
-        let dy = py[b] - py[a];
-        let d = Math.sqrt(dx * dx + dy * dy);
-        const sd = radius[a] + radius[b];
-        if (d >= sd + range) return;
-        if (d < 1e-9) {
-          // Coincident centres: separate along x (deterministic).
-          dx = 1; dy = 0; d = 1e-9;
-        } else {
-          dx /= d; dy /= d;
+      hash.build(cells, W, H, cut);
+      const { bx, by, start, items, binOf } = hash;
+      // Visit each unordered pair (a < b) in the same or adjacent bins once.
+      for (let a = 0; a < n; a++) {
+        const ba = binOf[a];
+        const bi = ba % bx, bj = (ba - bi) / bx;
+        const j0 = bj > 0 ? bj - 1 : 0, j1 = bj < by - 1 ? bj + 1 : bj;
+        const i0 = bi > 0 ? bi - 1 : 0, i1 = bi < bx - 1 ? bi + 1 : bi;
+        const ax = px[a], ay = py[a], ra = radius[a];
+        for (let j = j0; j <= j1; j++) {
+          for (let i = i0; i <= i1; i++) {
+            const nb = j * bx + i;
+            for (let k = start[nb]; k < start[nb + 1]; k++) {
+              const b = items[k];
+              if (b <= a) continue;
+              let dx = px[b] - ax, dy = py[b] - ay;
+              const sd = ra + radius[b];
+              const d2 = dx * dx + dy * dy;
+              const reach = sd + range;
+              if (d2 >= reach * reach) continue;
+              let d = Math.sqrt(d2);
+              if (d < 1e-9) { dx = 1; dy = 0; d = 1; } // coincident centres: separate along x
+              else { dx /= d; dy /= d; }
+              const delta = sd - d;
+              // Homophilic adhesion: A = A₀ + Σ_k J_k·min(a_k, b_k).
+              let A = A0;
+              for (let q = 0; q < nAdh; q++) {
+                const g = adh[q];
+                const va = x[a * G + g], vb = x[b * G + g];
+                A += J[g] * (va < vb ? va : vb);
+              }
+              const F = (delta > 0 ? kRep * delta : 0) - A * ramp(delta, range);
+              // F > 0 pushes a and b apart.
+              fx[a] -= F * dx; fy[a] -= F * dy;
+              fx[b] += F * dx; fy[b] += F * dy;
+            }
+          }
         }
-        const delta = sd - d;
-        const F = (delta > 0 ? kRep * delta : 0) - adhesion(grn, cells, cfg, a, b) * ramp(delta, range);
-        // F > 0 pushes a away from b (−direction for a, +direction for b).
-        fx[a] -= F * dx; fy[a] -= F * dy;
-        fx[b] += F * dx; fy[b] += F * dy;
-      });
+      }
       for (let c = 0; c < n; c++) {
         // Soft walls keep cells inside the morphogen grid.
         const r = radius[c];
         if (px[c] < r) fx[c] += kRep * (r - px[c]);
-        if (px[c] > this.width - r) fx[c] -= kRep * (px[c] - (this.width - r));
+        if (px[c] > W - r) fx[c] -= kRep * (px[c] - (W - r));
         if (py[c] < r) fy[c] += kRep * (r - py[c]);
-        if (py[c] > this.height - r) fy[c] -= kRep * (py[c] - (this.height - r));
+        if (py[c] > H - r) fy[c] -= kRep * (py[c] - (H - r));
         px[c] += mob * fx[c];
         py[c] += mob * fy[c];
-        if (kick > 0) {
+        if (kick > 0 && s === 0) {
           px[c] += kick * rng.normal();
           py[c] += kick * rng.normal();
         }

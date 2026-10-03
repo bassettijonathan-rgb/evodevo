@@ -128,3 +128,40 @@ export function frenchFlagEmbryo(opts: { thetaB?: number; thetaW?: number; w?: n
     { S: 1 },
   );
 }
+
+/**
+ * Two cell types that differ only in adhesion, for Steinberg's sorting experiments.
+ * T is a bistable fate switch (set by the initial state, then remembered). T cells
+ * express cadherin cadA; non-T cells express cadB, unless `sameCadherin`, in which
+ * case both types express cadA, T cells at level 1 and others at `lowLevel`
+ * (Steinberg & Takeichi 1994: cells sort by cadherin AMOUNT alone).
+ */
+export function sortingPair(opts: { sameCadherin?: boolean; lowLevel?: number; identical?: boolean; binding?: number } = {}): Genome {
+  const { sameCadherin = false, lowLevel = 0.4, identical = false, binding = 1 } = opts;
+  const genes: Parameters<typeof buildGenome>[0] = [
+    { name: 'T', type: 'tf', bias: -4, sites: { T: 8 } },
+  ];
+  if (identical) {
+    genes.push({ name: 'cadA', type: 'adhesion', binding, bias: 8 });
+  } else if (sameCadherin) {
+    // Level = σ(bias + w·T): ≈1 in T cells, ≈lowLevel in the others.
+    genes.push({ name: 'cadA', type: 'adhesion', binding, bias: logit(lowLevel), sites: { T: 10 - logit(lowLevel) } });
+  } else {
+    genes.push({ name: 'cadA', type: 'adhesion', binding, bias: -8, sites: { T: 16 } });
+    genes.push({ name: 'cadB', type: 'adhesion', binding, bias: 8, sites: { T: -16 } });
+  }
+  return buildGenome(genes);
+}
+
+/**
+ * Lateral inhibition (Collier et al. 1996): Delta is a contact ligand; Notch
+ * activity N rises with the neighbours' Delta; N represses the cell's own Delta.
+ * Neighbours therefore push each other into opposite states: salt-and-pepper fates.
+ */
+export function lateralInhibition(opts: { w?: number } = {}): Genome {
+  const { w = 12 } = opts;
+  return buildGenome([
+    { name: 'Dl', type: 'contact', binding: 1, bias: w / 2, sites: { N: -w } },
+    { name: 'N', type: 'tf', bias: -w / 2, sites: { Dl: w } },
+  ]);
+}

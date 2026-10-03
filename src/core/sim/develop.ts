@@ -201,3 +201,23 @@ export function latticeTissue(
   for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) out.push({ x: x0 + i, y: y0 + j, state: state?.(i, j) });
   return out;
 }
+
+/**
+ * The n lattice sites of a hexagonal packing (spacing `a`) closest to (cx, cy):
+ * a roughly circular, densely packed aggregate.
+ */
+export function hexDisc(
+  n: number,
+  cx: number,
+  cy: number,
+  state?: (k: number) => Record<GeneId, number> | undefined,
+  a = 0.95,
+): TissueCell[] {
+  const half = Math.ceil(Math.sqrt(n)) + 2;
+  const pts: [number, number][] = [];
+  for (let j = -half; j <= half; j++) {
+    for (let i = -half; i <= half; i++) pts.push([(i + (Math.abs(j) % 2) * 0.5) * a, (j * a * Math.sqrt(3)) / 2]);
+  }
+  pts.sort((p, q) => p[0] ** 2 + p[1] ** 2 - (q[0] ** 2 + q[1] ** 2) || p[1] - q[1] || p[0] - q[0]);
+  return pts.slice(0, n).map(([x, y], k) => ({ x: cx + x, y: cy + y, state: state?.(k) }));
+}

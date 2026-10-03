@@ -1,5 +1,46 @@
 # Changelog
 
+## M3: Mechanics, differential adhesion, lateral inhibition
+
+**Built**
+- Faster mechanics: the pair loop is inlined, buffers are reused, and motility kicks
+  are drawn once per developmental step with the full-step variance 2k_BT·Δt/γ while
+  forces are still resolved every sub-step. Results were bit-identical before the
+  kick change. The kick change alters the noise sequence but not its statistics.
+- `metrics/tissue.ts`: contact neighbours, connected aggregates, homotypic-contact
+  fraction, surface cells.
+- `hexDisc` initial condition; presets `sortingPair` (different cadherins, the same
+  cadherin at different levels, or identical) and `lateralInhibition` (Collier-style
+  Delta–Notch).
+
+**Validated**: 79 tests in total
+- Two adhering cells relax to the analytic overlap δ* = A/k_rep (to 1e-6). Without
+  noise a random packing relaxes with non-increasing energy. Contact signals average
+  the neighbours and exclude the cell itself.
+- **Sorting (Steinberg)**, 400 cells, 50/50 random mix, 3 seeds:
+  - Different cadherins: homotypic contacts rise from 0.50 to > 0.8 (0.88 typical).
+  - Same cadherin at 1.0 vs 0.4 (Steinberg & Takeichi 1994): low expressers are
+    enriched at the aggregate surface by > 20 percentage points, i.e. high expressers
+    sort inside.
+  - Control (identical adhesion): no segregation and no layering.
+- **Lateral inhibition**: linear theory gives a checkerboard-mode growth rate of
+  exactly w/4 − 1 (threshold w = 4), and the uniform mode is always stable.
+  Simulation agrees: at w = 3 the noise dies out (range < 0.01), at w = 5 a pattern
+  grows, and at w = 12 a full 0/1 checkerboard forms with > 90% of neighbours in
+  opposite fates (a few domain-wall defects remain).
+
+**Findings worth knowing**
+- **Sorting needs active motility, and the window is narrow.** At k_BT = 0.01 a
+  different-cadherin mix stays jammed (homotypic fraction 0.51 after 600τ); at 0.03 it
+  sorts. Sorting by cadherin *level* has smaller energy differences and needs about
+  0.05. At 0.06 and above, the weakly cohesive cells start to "evaporate" from the
+  aggregate. The default motility (0.002) is therefore too cold to sort within a
+  normal development time. Whether evolution should be able to tune motility (for
+  example a "motile" effector) is a question for M4/M5.
+- As DESIGN.md §3.8 predicted, homophilic `min` binding gives W_AB ≤ min(W_AA, W_BB).
+  The level experiment therefore gives inside/outside layering, not the full
+  engulfment phase of the DAH phase diagram.
+
 ## M2: Morphogens, multicellular growth, French flag, Turing
 
 **Built**

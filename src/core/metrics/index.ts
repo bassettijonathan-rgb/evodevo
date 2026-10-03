@@ -5,7 +5,8 @@
  * Design choices that keep "symmetry" and "segments" honest (DESIGN.md D10):
  * - Cell types are expression signatures (which TF/contact genes are on), never labels.
  * - Pattern symmetry is measured as agreement BEYOND CHANCE (Cohen's κ) between the
- *   cell-type map and its reflected/rotated copy. A uniform blob scores 0, not 1.
+ *   cell-type map and its reflected/rotated copy. A uniform blob scores 0, not 1,
+ *   and so does a blob with only a sprinkling (< 10%) of other types.
  * - A segment is a stripe of one gene's expression that spans the body width;
  *   ≥ 3 regularly spaced stripes along the main axis count as segmentation.
  *   Concentric rings (one connected annulus) and spots (narrow) do not count.
@@ -196,7 +197,12 @@ function rotational(r: Raster): { kappa: number; order: number } {
 /**
  * Segments carried by gene g: connected patches of cells expressing g, which
  * (i) number ≥ 3, (ii) are spaced regularly along the main body axis (CV < 0.35),
- * and (iii) each span ≥ 50% of the local body width (stripes, not spots).
+ * (iii) each span ≥ 50% of the local body width (stripes, not spots),
+ * (iv) each CROSS the main axis (cells on both sides of it), and
+ * (v) each lie mostly in the interior (≤ 50% surface cells).
+ * (iv) and (v) exclude a broken outer rim, whose arcs near the ends of the axis
+ * otherwise pass (i)–(iii): the M4 experiment's only "segmented" organisms were
+ * exactly that.
  */
 function segmentsOfGene(s: OrganismState, g: number, nbrs: number[][], axis: ReturnType<typeof principalAxes>): number {
   const G = s.grn.G;
@@ -224,13 +230,15 @@ function segmentsOfGene(s: OrganismState, g: number, nbrs: number[][], axis: Ret
     for (let c = 0; c < s.n; c++) if (Math.abs(along(c) - u) <= 1) { const v = across(c); lo = Math.min(lo, v); hi = Math.max(hi, v); }
     return hi - lo + 1;
   };
+  const surface = (c: number) => nbrs[c].length < 5;
   const stripes = big
     .map((l) => {
       const u = l.reduce((a, c) => a + along(c), 0) / l.length;
       const vs = l.map(across);
-      return { u, span: Math.max(...vs) - Math.min(...vs) + 1 };
+      const lo = Math.min(...vs), hi = Math.max(...vs);
+      return { u, span: hi - lo + 1, crosses: lo < -0.5 && hi > 0.5, surfaceFrac: l.filter(surface).length / l.length };
     })
-    .filter((st) => st.span >= 0.5 * width(st.u))
+    .filter((st) => st.span >= 0.5 * width(st.u) && st.crosses && st.surfaceFrac <= 0.5)
     .sort((a, b) => a.u - b.u);
   if (stripes.length < 3) return 0;
   const gaps = stripes.slice(1).map((st, k) => st.u - stripes[k].u);
@@ -256,9 +264,13 @@ export function computeMetrics(s: OrganismState): Metrics {
   let occupied = 0;
   for (const l of raster.label) if (l !== -2) occupied++;
   const bi = bilateral(raster);
-  const rot = types.signatures.length >= 2 ? rotational(raster) : { kappa: 0, order: 0 };
+  // κ is unstable when one type dominates (chance agreement ≈ 1, so a few
+  // coincidences give a large κ: the "kappa paradox"). Pattern symmetry is only
+  // scored when the second most common type covers ≥ 10% of the cells.
+  const patterned = types.counts.length >= 2 && types.counts[1] >= 0.1 * s.n;
+  const rot = patterned ? rotational(raster) : { kappa: 0, order: 0 };
   const iso = (37 * Math.PI) / 180;
-  const isotropy = types.signatures.length >= 2 ? agreement(raster, cos(iso), -sin(iso), sin(iso), cos(iso)).kappa : 0;
+  const isotropy = patterned ? agreement(raster, cos(iso), -sin(iso), sin(iso), cos(iso)).kappa : 0;
 
   const nbrs = neighbours(s);
   let segments = 0, segmentGene = '';
@@ -274,7 +286,7 @@ export function computeMetrics(s: OrganismState): Metrics {
     typeEntropy,
     elongation: axis.elongation,
     shapeBilateral: bi.shape,
-    patternBilateral: types.signatures.length >= 2 ? bi.kappa : 0,
+    patternBilateral: patterned ? bi.kappa : 0,
     patternRadial: rot.kappa,
     radialOrder: rot.order,
     patternIsotropy: Math.max(0, isotropy),

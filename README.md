@@ -8,7 +8,8 @@ development.
 - [DESIGN.md](DESIGN.md): the model, its equations and the design decisions (D1–D13).
 - [CHANGELOG.md](CHANGELOG.md): what each milestone built, what was validated, and what
   was found along the way, including what didn't work.
-- [reports/M4-emergence.md](reports/M4-emergence.md): the emergence experiment.
+- [reports/M4-emergence.md](reports/M4-emergence.md): the emergence experiment. Segmentation did
+  not emerge (0/8 runs); one run evolved axis elongation through a growth zone.
 
 ## Running it
 

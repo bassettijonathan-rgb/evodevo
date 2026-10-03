@@ -1,5 +1,39 @@
 # Changelog
 
+## M4 report: the emergence experiment ([reports/M4-emergence.md](reports/M4-emergence.md))
+
+8 runs selected **only** for body size and number of cell types, plus 4 drift runs and
+4 size-only runs as controls. Each run: 120 generations of 32 organisms, a 200-cell
+cap, about 59,000 organisms in total.
+
+- **Segmentation emerged in 0 of 8 selected runs** (and 0 of 8 controls).
+- **Non-trivial symmetry emerged in 1 of 8** (and 0 of 8 controls). The selected
+  organisms reached their cell types by **concentric zonation**, reading a
+  self-secreted radial gradient, which is symmetric for free: 468 of 480 sampled
+  symmetric candidates were isotropic.
+- **The one real surprise is shape, not pattern.** Run 0 evolved axis **elongation**
+  (≈ 3×) without being selected for it. Knockouts show it needs the maternal polarity
+  cue plus a self-secreted morphogen that suppresses division in the crowded
+  interior: oriented divisions plus a growth zone made by density sensing. That is
+  the route M2 predicted is necessary. A key gene in that genome exists as three
+  paralogs from duplications.
+- Drift alone destroys development: every drift run lost growth.
+
+**Mistakes found and fixed while reporting** (all disclosed in the report)
+- The first segment detector counted a **broken outer rim** as 3 segments (10
+  organisms in 2 runs). Stripes must now cross the main axis and lie mostly in the
+  interior. A regression test uses the actual genome that fooled it, and fails on
+  the old detector.
+- Pattern κ was unstable when one type dominates (the **kappa paradox**). Symmetry is
+  now scored only when the second type covers ≥ 10% of cells.
+- Chance-corrected κ alone could not separate trivial concentric symmetry, so I
+  added a **pattern isotropy** metric (κ under a 37° rotation).
+- The pre-registered null (unselected organisms with ≥ 3 types) turned out empty,
+  because drift destroys growth. I added a size-only control and fell back to
+  absolute κ thresholds.
+- Duplicated genes could end up with colliding names (two different genes both
+  called `g5'`). Copies are now numbered like Hox paralogs (`g5.2`, `g5.3`, …).
+
 ## M6: Phylogeny, save/load, polish, performance
 
 **Built**

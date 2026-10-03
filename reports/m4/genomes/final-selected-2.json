@@ -1,0 +1,1044 @@
+{
+  "schema": 1,
+  "nextGeneId": 26,
+  "genes": [
+    {
+      "id": 0,
+      "name": "g0",
+      "type": "effector",
+      "bias": 3.60581242324137,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 0,
+          "weight": -5.232021649113802
+        },
+        {
+          "regulator": 22,
+          "weight": -5.232021649113802
+        },
+        {
+          "regulator": 1,
+          "weight": 3.499829780423573
+        },
+        {
+          "regulator": 12,
+          "weight": 3.499829780423573
+        },
+        {
+          "regulator": 23,
+          "weight": 3.499829780423573
+        }
+      ],
+      "effector": "divide"
+    },
+    {
+      "id": 1,
+      "name": "g1",
+      "type": "tf",
+      "bias": -1.1482106171267914,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": -0.2203804127755065,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 12,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 23,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 7,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 20,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 8,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 21,
+          "weight": 2.302699418373656
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "g2",
+      "type": "contact",
+      "bias": -0.8085809804592303,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 4,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 15,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 10,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 17,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 7,
+          "weight": 1.0190725169821595
+        },
+        {
+          "regulator": 20,
+          "weight": 1.0190725169821595
+        },
+        {
+          "regulator": 22,
+          "weight": -1.7336651273662573
+        }
+      ],
+      "binding": 1.127553358556582
+    },
+    {
+      "id": 3,
+      "name": "g3",
+      "type": "tf",
+      "bias": -2.86734107996274,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 14,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 25,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 9,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 16,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 4,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 15,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 10,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 17,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 1,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 12,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 23,
+          "weight": 0.08324092363103652
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "g4",
+      "type": "adhesion",
+      "bias": 2.21225402064408,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 13,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 24,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 3,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 14,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 25,
+          "weight": 2.364706765827252
+        },
+        {
+          "regulator": 9,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 16,
+          "weight": 2.50965197685381
+        }
+      ],
+      "binding": 0.7927718636309606
+    },
+    {
+      "id": 9,
+      "name": "g3'",
+      "type": "morphogen",
+      "bias": -2.925132225488537,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": -0.027626873483142647,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 14,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 25,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 9,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 16,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 4,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 15,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 10,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 17,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 1,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 12,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 23,
+          "weight": 0.08324092363103652
+        }
+      ],
+      "diffusion": 0.7144308563126108,
+      "secretion": 0.16344535643560723,
+      "fieldDecay": 0.08079115713334593
+    },
+    {
+      "id": 10,
+      "name": "g4'",
+      "type": "adhesion",
+      "bias": 2.21225402064408,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 13,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 24,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 3,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 14,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 25,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 9,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 16,
+          "weight": 2.50965197685381
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 5,
+      "name": "g5",
+      "type": "tf",
+      "bias": 2.861569760581456,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.2293374545372293
+        },
+        {
+          "regulator": 14,
+          "weight": -2.2293374545372293
+        },
+        {
+          "regulator": 25,
+          "weight": -2.2293374545372293
+        },
+        {
+          "regulator": 9,
+          "weight": -3.1920910380323257
+        },
+        {
+          "regulator": 16,
+          "weight": -2.211451982315
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "g6",
+      "type": "adhesion",
+      "bias": 0.5303506728566143,
+      "rate": 0.4569669784457024,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 13,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 24,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 6,
+          "weight": 0.6216412806035708
+        },
+        {
+          "regulator": 19,
+          "weight": 0.6216412806035708
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 7,
+      "name": "g7",
+      "type": "morphogen",
+      "bias": -2.174073373205209,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 12,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 23,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 0,
+          "weight": -6.655922681921103
+        },
+        {
+          "regulator": 22,
+          "weight": -6.655922681921103
+        }
+      ],
+      "diffusion": 0.4314409477546163,
+      "secretion": 0.34177692059091863,
+      "fieldDecay": 0.1621987926297651
+    },
+    {
+      "id": 8,
+      "name": "g7'",
+      "type": "morphogen",
+      "bias": -2.174073373205209,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 12,
+          "weight": 3.511587311164569
+        },
+        {
+          "regulator": 23,
+          "weight": 3.511587311164569
+        },
+        {
+          "regulator": 0,
+          "weight": -6.655922681921103
+        },
+        {
+          "regulator": 22,
+          "weight": -6.655922681921103
+        }
+      ],
+      "diffusion": 0.4314409477546163,
+      "secretion": 0.34177692059091863,
+      "fieldDecay": 0.1621987926297651
+    },
+    {
+      "id": 12,
+      "name": "g1'",
+      "type": "tf",
+      "bias": -1.3521492601428373,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": -0.2203804127755065,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": -1.9433546072271848
+        },
+        {
+          "regulator": 12,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 23,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 7,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 20,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 8,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 21,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 3,
+          "weight": -3.0949517285477226
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "g2'",
+      "type": "contact",
+      "bias": -0.8085809804592303,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 4,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 15,
+          "weight": 3.040702995687783
+        },
+        {
+          "regulator": 10,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 17,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 7,
+          "weight": 1.0190725169821595
+        },
+        {
+          "regulator": 20,
+          "weight": 1.0190725169821595
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 14,
+      "name": "g3'",
+      "type": "tf",
+      "bias": -2.86734107996274,
+      "rate": 0.125,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 14,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 25,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 9,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 16,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 4,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 15,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 10,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 17,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 1,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 12,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 23,
+          "weight": 0.08324092363103652
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "g0''",
+      "type": "effector",
+      "bias": 3.60581242324137,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 0,
+          "weight": -5.232021649113802
+        },
+        {
+          "regulator": 22,
+          "weight": -5.232021649113802
+        },
+        {
+          "regulator": 1,
+          "weight": 3.499829780423573
+        }
+      ],
+      "effector": "divide"
+    },
+    {
+      "id": 23,
+      "name": "g1''",
+      "type": "tf",
+      "bias": -1.3521492601428373,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": -0.2203804127755065,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 12,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 23,
+          "weight": -1.4905485088864479
+        },
+        {
+          "regulator": 7,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 20,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 8,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 21,
+          "weight": 2.302699418373656
+        },
+        {
+          "regulator": 3,
+          "weight": -3.0949517285477226
+        },
+        {
+          "regulator": 25,
+          "weight": -0.2407912385524175
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "g2''",
+      "type": "contact",
+      "bias": -0.44640645258576644,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 4,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 15,
+          "weight": 3.040702995687783
+        },
+        {
+          "regulator": 10,
+          "weight": 1.4576546209982417
+        },
+        {
+          "regulator": 17,
+          "weight": 3.2278714031864624
+        },
+        {
+          "regulator": 7,
+          "weight": 1.0190725169821595
+        },
+        {
+          "regulator": 20,
+          "weight": 1.0190725169821595
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 25,
+      "name": "g3''",
+      "type": "tf",
+      "bias": -2.86734107996274,
+      "rate": 0.125,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 14,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 25,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 9,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 16,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 4,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 15,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 10,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 17,
+          "weight": 0.26044786196974296
+        },
+        {
+          "regulator": 1,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 12,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 23,
+          "weight": 0.08324092363103652
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "g4'",
+      "type": "adhesion",
+      "bias": 2.21225402064408,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 13,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 24,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 3,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 14,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 25,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 9,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 16,
+          "weight": 2.50965197685381
+        }
+      ],
+      "binding": 0.7927718636309606
+    },
+    {
+      "id": 16,
+      "name": "g3''",
+      "type": "tf",
+      "bias": -2.86734107996274,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 14,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 25,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 9,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 16,
+          "weight": -2.1709034106167464
+        },
+        {
+          "regulator": 4,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 15,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 10,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 17,
+          "weight": -0.6560715826393948
+        },
+        {
+          "regulator": 1,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 12,
+          "weight": 0.08324092363103652
+        },
+        {
+          "regulator": 23,
+          "weight": 0.08324092363103652
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "name": "g4''",
+      "type": "adhesion",
+      "bias": 2.21225402064408,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 13,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 24,
+          "weight": 4.306163365726555
+        },
+        {
+          "regulator": 3,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 14,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 25,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 9,
+          "weight": 2.50965197685381
+        },
+        {
+          "regulator": 16,
+          "weight": 2.50965197685381
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 18,
+      "name": "g5'",
+      "type": "tf",
+      "bias": 2.861569760581456,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 3,
+          "weight": -2.2293374545372293
+        },
+        {
+          "regulator": 14,
+          "weight": -2.9238570208792045
+        },
+        {
+          "regulator": 25,
+          "weight": -2.9238570208792045
+        },
+        {
+          "regulator": 9,
+          "weight": -2.211451982315
+        },
+        {
+          "regulator": 16,
+          "weight": -2.211451982315
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "g6'",
+      "type": "adhesion",
+      "bias": 0.5303506728566143,
+      "rate": 0.4569669784457024,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 2,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 13,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 24,
+          "weight": 0.6295406186606691
+        },
+        {
+          "regulator": 6,
+          "weight": 0.6216412806035708
+        },
+        {
+          "regulator": 19,
+          "weight": 0.6216412806035708
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 20,
+      "name": "g7'",
+      "type": "morphogen",
+      "bias": -2.174073373205209,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 12,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 23,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 0,
+          "weight": -6.655922681921103
+        },
+        {
+          "regulator": 22,
+          "weight": -6.655922681921103
+        }
+      ],
+      "diffusion": 0.4314409477546163,
+      "secretion": 0.34177692059091863,
+      "fieldDecay": 0.1621987926297651
+    },
+    {
+      "id": 21,
+      "name": "g7''",
+      "type": "morphogen",
+      "bias": -1.9361067002253822,
+      "rate": 0.25,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 1,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 12,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 23,
+          "weight": 3.628874159927828
+        },
+        {
+          "regulator": 0,
+          "weight": -6.655922681921103
+        },
+        {
+          "regulator": 22,
+          "weight": -6.655922681921103
+        }
+      ],
+      "diffusion": 0.4314409477546163,
+      "secretion": 0.34177692059091863,
+      "fieldDecay": 0.1621987926297651
+    }
+  ],
+  "maternal": {
+    "1": 0.5,
+    "12": 0.10607421447205245,
+    "23": 0.10607421447205245
+  }
+}

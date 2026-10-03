@@ -45,7 +45,7 @@ describe('mutation operators', () => {
     const g = frenchFlag();
     const M = geneId(g, 'M');
     const d = duplicateGenes(g, [M], 'double');
-    const copy = d.genes.find((x) => x.name === "M'")!;
+    const copy = d.genes.find((x) => x.name === 'M.2')!;
     expect(copy.sites).toEqual(g.genes.find((x) => x.id === M)!.sites); // same cis-region
     for (const name of ['B', 'W']) {
       const sites = d.genes.find((x) => x.name === name)!.sites;
@@ -67,7 +67,7 @@ describe('dosage-neutral duplication leaves the phenotype unchanged', () => {
     for (let c = 0; c < e.cells.n; c++) {
       for (const base of ['S', 'M', 'B', 'W', 'R']) {
         let sum = 0;
-        e.grn.names.forEach((nm, i) => { if (nm.replace(/'+$/, '') === base) sum += e.cells.x[c * G + i]; });
+        e.grn.names.forEach((nm, i) => { if (nm.replace(/\.\d+$/, '') === base) sum += e.cells.x[c * G + i]; });
         out.push(sum);
       }
     }
@@ -105,6 +105,18 @@ describe('dosage-neutral duplication leaves the phenotype unchanged', () => {
     let worst = 0;
     for (let c = 0; c < a.cells.n; c++) worst = Math.max(worst, Math.abs(a.cells.px[c] - b.cells.px[c]), Math.abs(a.cells.py[c] - b.cells.py[c]));
     expect(worst).toBeLessThan(1e-6);
+  });
+});
+
+describe('paralog naming', () => {
+  it('numbers copies uniquely by root name', () => {
+    let g = frenchFlag();
+    const M = geneId(g, 'M');
+    g = duplicateGenes(g, [M], 'neutral');
+    g = duplicateGenes(g, [M], 'neutral');
+    g = duplicateGenes(g, [geneId(g, 'M.2')], 'neutral');
+    expect(g.genes.map((x) => x.name).filter((n) => n.startsWith('M')).sort()).toEqual(['M', 'M.2', 'M.3', 'M.4']);
+    expect(new Set(g.genes.map((x) => x.name)).size).toBe(g.genes.length);
   });
 });
 

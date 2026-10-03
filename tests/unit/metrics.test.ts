@@ -7,6 +7,9 @@ import { compileGenome } from '../../src/core/genome/compile';
 import { computeMetrics, type OrganismState } from '../../src/core/metrics';
 import { Rng } from '../../src/core/rng';
 import { hexDisc } from '../../src/core/sim/develop';
+import { readFileSync } from 'node:fs';
+import { evaluate } from '../../src/core/evolution/evaluate';
+import { genomeFromJSON, genomeHash } from '../../src/core/genome/serialize';
 
 const grn = compileGenome(buildGenome([{ name: 'a', type: 'tf' }, { name: 'b', type: 'tf' }]), 0.1);
 
@@ -42,6 +45,15 @@ describe('segments', () => {
     const irregular = [2, 3, 12, 13, 16, 17, 34, 35]; // bands at very uneven spacing
     expect(computeMetrics(organism(rod, (x) => [irregular.includes(Math.floor(x - 10)) ? 1 : 0, 0])).segments).toBe(0);
     expect(computeMetrics(organism(rod, (x) => [x > 20 && x < 24 ? 1 : 0, 0])).segments).toBe(0);
+  });
+
+  it('regression: an evolved organism whose broken outer rim fooled the first detector has 0 segments', () => {
+    // From the M4 experiment (selected run 4, individual 2773). One of its genes is on
+    // in the outer rim, which breaks into three arcs; the original detector counted 3 segments.
+    const genome = genomeFromJSON(readFileSync(new URL('../fixtures/rim-false-positive.genome.json', import.meta.url), 'utf8'));
+    const r = evaluate({ genome, config: { gridNx: 64, gridNy: 64, maxCells: 200, tDev: 150 }, seed: `selected-4/${genomeHash(genome)}` });
+    expect(r.metrics.cells).toBe(200);
+    expect(r.metrics.segments).toBe(0);
   });
 });
 
@@ -81,6 +93,13 @@ describe('symmetry', () => {
     expect(arms.patternIsotropy).toBeLessThan(0.35);
     const mirror = computeMetrics(organism(disc, (x, y) => [Math.abs(y - 32) > 4 ? 1 : 0, x > 34 ? 1 : 0]));
     expect(mirror.patternIsotropy).toBeLessThan(0.35);
+  });
+
+  it('a dominant type with a sprinkling of others has no pattern symmetry (kappa paradox guard)', () => {
+    const rng = new Rng(4);
+    const m = computeMetrics(organism(disc, () => [rng.float() < 0.04 ? 1 : 0, rng.float() < 0.04 ? 1 : 0]));
+    expect(m.patternBilateral).toBe(0);
+    expect(m.patternRadial).toBe(0);
   });
 
   it('a 3-fold pattern is detected as order 3, not 6', () => {

@@ -806,6 +806,9 @@ was forced by a test or a measurement, and the CHANGELOG has the details.
 | Cell sorting | default motility | sorting needs k_BT ≈ 0.03–0.05; default 0.002 is "cold" | At low noise aggregates jam. Above ~0.06 weakly adhesive cells evaporate. |
 | French flag read-out | three thresholds + cross-repression | thresholds **plus self-activation** (bistable switches), bias shifted by −feedback/2 | A pure threshold read-out of a smooth gradient gives 6–10-cell-wide, leaky boundaries. |
 | Lint rule for `core` boundaries | ESLint | a Vitest test | Saves a dependency; same guarantee. |
+| Segment detector | ≥ 3 regular stripes spanning the body width | additionally: each stripe crosses the main axis and is mostly interior | A broken outer rim passed the original test (found in the M4 experiment). |
+| Pattern symmetry | Cohen's κ | κ, only when the second type has ≥ 10% of cells, plus a separate *isotropy* score | The κ paradox for skewed type frequencies, and concentric patterns scoring high for free. |
+| Paralog names | `name'` | `root.n` (lowest free n) | Repeated duplication produced colliding names. |
 
 Open issues, recorded honestly:
 - **Oriented division does not elongate tissue on its own** (crowded chains buckle,
@@ -814,5 +817,8 @@ Open issues, recorded honestly:
 - **Cell types use TF and contact genes only** (D7), so morphogen-only patterns
   (Turing presets) count as one type. Including morphogen and adhesion genes is
   probably better.
+- **Segmentation did not emerge** in the M4 experiment (0/8 selected runs). Selection for cell
+  types produced concentric zonation. One run evolved axis elongation through a density-sensing
+  growth zone. See reports/M4-emergence.md for suggestions.
 - **Level-based sorting coarsens slowly**: within 1000τ it gives surface layering of
   the low expressers, not a single central core.

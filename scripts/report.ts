@@ -91,11 +91,26 @@ for (const run of runs) {
   candidatesSeen.set(run, { candidates: byHash.size, isotropic });
 }
 const fmt = (x: number, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '—');
-const pct = (k: number, n: number) => (n ? `${k}/${n} (${((100 * k) / n).toFixed(1)}%)` : '0/0');
 
 interface Hit { run: Run; rec: Rec; why: string }
+// Segment candidates flagged by the metrics recorded during the run are regrown
+// and re-measured with the current (corrected) detector.
+const segRecorded = new Map<Run, number>();
+const segHits = new Map<Run, Rec[]>();
+for (const run of runs) {
+  const recorded = run.history.filter((h) => isSeg(h.metrics));
+  segRecorded.set(run, recorded.length);
+  const confirmed: Rec[] = [];
+  for (const h of recorded) {
+    const g = genomeOf(run, h.id);
+    const m = evaluate({ genome: g, config: run.sim, seed: `${run.kind}-${run.index}/${hashOf(g)}` }).metrics;
+    if (isSeg(m)) confirmed.push({ ...h, metrics: m });
+  }
+  segHits.set(run, confirmed);
+}
+
 function hitsIn(run: Run): { seg: Rec[]; sym: Rec[] } {
-  return { seg: run.history.filter((h) => isSeg(h.metrics)), sym: symHits.get(run) ?? [] };
+  return { seg: segHits.get(run) ?? [], sym: symHits.get(run) ?? [] };
 }
 
 /** Regrow an organism and knock out each gene: which genes does the pattern need? */
@@ -126,15 +141,18 @@ out('- Criteria fixed before looking at the results (DESIGN.md D10):');
 out('  - **segmentation**: ≥ 3 regularly spaced stripes of one gene, each spanning ≥ 50% of the body width;');
 out(`  - **non-trivial symmetry**: ≥ 3 cell types, ≥ 150 cells, and pattern symmetry (Cohen's κ, beyond chance) above the 99th percentile of unselected organisms with ≥ 3 types.`);
 out();
-out('**Two changes to the symmetry criterion, made after the experiment was launched (stated here so they can be judged):**');
+out('**Changes to the criteria, made after the experiment was launched (stated here so they can be judged):**');
 out();
-out(`1. **Null too small.** Only ${null3.length} unselected organisms (drift runs plus generation 0 of selected runs) had ≥ 3 types and ≥ 150 cells. Without selection, growth itself degrades under drift, so a 99th percentile of that set is ${nullUsable ? 'usable' : '**not meaningful**'}. ${nullUsable ? `Thresholds used: mirror κ > ${fmt(thr.bilateral)}, rotational κ > ${fmt(thr.radial)}.` : `Fallback: absolute thresholds κ > ${KAPPA_ABS} (mirror or rotational).`}`);
-out(`2. **Isotropy exclusion.** Chance-corrected κ does not exclude the trivial case DESIGN.md D10 warns about: concentric rings of cell types around the centre of a blob (an organism reading its own radial gradient) are mirror-symmetric about every axis and rotation-symmetric at every order. So a hit must also have *pattern isotropy* (κ under a 37° rotation) ≤ ${ISOTROPY_MAX}. The isotropy rule was added after seeing that segmentation never occurred and that the null was empty, but before looking at any κ values. Candidates were regrown with the current metric code to compute it. The *sampling* of candidates was then changed once: a trial on partial data checked the top 30 by κ, found them all isotropic, and that ranking would hide rarer non-isotropic patterns. So the final rule is a seeded random sample of up to ${SAMPLE} unique genomes per run.`);
+out(`**(a) Null too small.** Only ${null3.length} organisms not selected for pattern (drift runs, size-only runs, and generation 0 of selected runs) had ≥ 3 types and ≥ 150 cells. Under drift, growth itself degrades, and selection for size alone rarely produces 3 types, so a 99th percentile of that set is ${nullUsable ? 'usable' : '**not meaningful**'}. ${nullUsable ? `Thresholds used: mirror κ > ${fmt(thr.bilateral)}, rotational κ > ${fmt(thr.radial)}.` : `Fallback: absolute thresholds κ > ${KAPPA_ABS} (mirror or rotational).`}`);
+out();
+out(`**(b) Isotropy exclusion.** Chance-corrected κ does not exclude the trivial case DESIGN.md D10 warns about: concentric rings of cell types around the centre of a blob (an organism reading its own radial gradient) are mirror-symmetric about every axis and rotation-symmetric at every order. So a hit must also have *pattern isotropy* (κ under a 37° rotation) ≤ ${ISOTROPY_MAX}. The isotropy rule was added after seeing that segmentation never occurred and that the null was empty, but before looking at any κ values. Candidates were regrown with the current metric code to compute it. The *sampling* of candidates was then changed once: a trial on partial data checked the top 30 by κ, found them all isotropic, and that ranking would hide rarer non-isotropic patterns. So the final rule is a seeded random sample of up to ${SAMPLE} unique genomes per run.`);
+out();
+out(`**(c) Detector corrections after visual inspection.** The first report listed 10 "segmented" organisms (selected runs 4 and 7) and several symmetric ones. Looking at them showed both were detector artefacts. The "segments" were a broken outer rim: one gene on in the surface cells of a round organism, falling into three arcs that each passed the width test. The strongest "symmetries" in the control runs had a minority type of a few scattered cells, where κ is unstable because chance agreement is ≈ 1. Two fixes followed: stripes must cross the main axis and lie mostly in the interior, and pattern symmetry is only scored when the second type covers ≥ 10% of cells. Both have regression tests, one of them using the actual genome that fooled the first detector. All numbers below use the corrected detectors (candidates regrown).`);
 out();
 
 out('## Results');
 out();
-out('| run | final best fitness | final best cells / types | max types ever | individuals with segments ≥ 3 | symmetric candidates (unique genomes) | of those isotropic (trivial) | non-trivially symmetric |');
+out('| run | final best fitness | final best cells / types | max types ever | segmented (first detector → confirmed) | symmetric candidates (unique genomes) | of those isotropic (trivial) | non-trivially symmetric |');
 out('|---|---|---|---|---|---|---|---|');
 const allHits: Hit[] = [];
 for (const run of [...selected, ...drift, ...sizeOnly]) {
@@ -142,7 +160,7 @@ for (const run of [...selected, ...drift, ...sizeOnly]) {
   const best = [...finals].sort((a, b) => (b.fitness || 0) - (a.fitness || 0))[0];
   const h = hitsIn(run);
   const cs = candidatesSeen.get(run)!;
-  out(`| ${run.kind} ${run.index} | ${run.kind !== 'drift' ? fmt(best.fitness, 3) : '—'} | ${best.metrics.cells} / ${best.metrics.cellTypes} | ${Math.max(...run.history.map((x) => x.metrics.cellTypes))} | ${pct(h.seg.length, run.history.length)} | ${cs.candidates} | ${Math.min(cs.isotropic, cs.candidates)}${cs.candidates > SAMPLE ? ` (of ${SAMPLE} sampled)` : ''} | ${h.sym.length} |`);
+  out(`| ${run.kind} ${run.index} | ${run.kind !== 'drift' ? fmt(best.fitness, 3) : '—'} | ${best.metrics.cells} / ${best.metrics.cellTypes} | ${Math.max(...run.history.map((x) => x.metrics.cellTypes))} | ${segRecorded.get(run)} → ${h.seg.length} | ${cs.candidates} | ${Math.min(cs.isotropic, cs.candidates)}${cs.candidates > SAMPLE ? ` (of ${SAMPLE} sampled)` : ''} | ${h.sym.length} |`);
   for (const r of h.seg) allHits.push({ run, rec: r, why: 'segments' });
   for (const r of h.sym) allHits.push({ run, rec: r, why: 'symmetry' });
 }
@@ -157,7 +175,7 @@ out();
 out(`**Runs in which non-trivial symmetry appeared at least once:** selected ${symRunsSel}/${selected.length}, drift ${symRunsDrift}/${drift.length}${sizeOnly.length ? `, size-only ${runsWith(sizeOnly, (r) => hitsIn(r).sym.length > 0)}/${sizeOnly.length}` : ''}.`);
 out();
 const selAll = selected.flatMap((r) => r.history);
-out(`Across all evaluated organisms: selected ${pct(selAll.filter((h) => isSeg(h.metrics)).length, selAll.length)} segmented; unselected ${pct(nullRecs.filter((h) => isSeg(h.metrics)).length, nullRecs.length)} segmented.`);
+out(`Organisms evaluated: ${selAll.length} in selected runs, ${nullRecs.length} not selected for pattern.`);
 out();
 // κ distribution among multi-type organisms in selected runs (recorded metrics).
 const multi = selAll.filter((h) => h.metrics.cellTypes >= 3 && big(h.metrics));
@@ -209,14 +227,19 @@ for (const h of examples) {
   const m = mech.base.metrics;
   out(`cells ${m.cells}, types ${m.cellTypes}, segments ${m.segments}${m.segmentGene ? ` (gene ${m.segmentGene})` : ''}, pattern mirror κ ${fmt(m.patternBilateral)}, rotational κ ${fmt(m.patternRadial)} (order ${m.radialOrder}), isotropy ${fmt(m.patternIsotropy)}, elongation ${fmt(m.elongation)}. Genome: ${g.genes.length} genes ([JSON](m4/genomes/${name}.json)).`);
   out();
-  const needed = mech.effects.filter((e) => e.after < 0.5 * e.before || (key === 'segments' && e.after < 3));
-  out(`Knockout analysis (${key}): ${needed.length ? `the pattern needs ${needed.map((e) => `\`${e.gene}\` (${e.type})`).join(', ')}` : 'no single knockout abolishes it'}.`);
+  const lost = (e: (typeof mech.effects)[number]) => e.after < 0.5 * e.before || (key === 'segments' && e.after < 3);
+  const noGrowth = mech.effects.filter((e) => e.cells < 100);
+  const needed = mech.effects.filter((e) => lost(e) && e.cells >= 150);
+  out(`Knockout analysis (${key}): ${needed.length ? `the pattern is lost, while the organism still grows, when knocking out ${needed.map((e) => `\`${e.gene}\` (${e.type})`).join(', ')}` : 'no single knockout abolishes it while the organism still grows'}.${noGrowth.length ? ` Knocking out ${noGrowth.map((e) => `\`${e.gene}\``).join(', ')} stops growth (< 100 cells).` : ''}`);
   out();
   out('| knockout | type | ' + key + ' | cells | types |');
   out('|---|---|---|---|---|');
   for (const e of mech.effects) out(`| ${e.gene} | ${e.type} | ${fmt(e.before)} → ${fmt(e.after)} | ${e.cells} | ${e.types} |`);
   out();
 }
+
+// Hand-written interpretation, kept in its own file so regenerating never overwrites it.
+try { out(readFileSync(`${outDir}/M4-interpretation.md`, 'utf8')); out(); } catch { /* none yet */ }
 
 out('## Final organisms of the selected runs');
 out();

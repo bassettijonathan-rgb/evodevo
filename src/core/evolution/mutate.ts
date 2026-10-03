@@ -105,6 +105,15 @@ function nameOf(g: Genome, id: GeneId): string {
 // ---------------------------------------------------------------- duplication
 
 /**
+ * Name for a new paralog: the root name plus the lowest free number, like Hox
+ * paralog groups (hox, hox.2, hox.3 …; a copy of hox.2 becomes hox.3, not hox.2.2).
+ */
+export function paralogName(name: string, taken: Set<string>): string {
+  const root = name.replace(/\.\d+$/, '');
+  for (let k = 2; ; k++) if (!taken.has(`${root}.${k}`)) return `${root}.${k}`;
+}
+
+/**
  * Duplicate the genes with the given ids (DESIGN.md §6.1–6.3). Each copy is
  * inserted right after its block, gets a fresh id and a copy of the original's
  * cis-regulatory region (its INPUTS); then every site anywhere that binds an
@@ -122,10 +131,12 @@ export function duplicateGenes(genome: Genome, ids: GeneId[], dosage: 'neutral' 
 
   // Insert copies after the last gene of the (contiguous or not) set, preserving order.
   const lastIndex = Math.max(...ids.map((id) => g.genes.findIndex((x) => x.id === id)));
+  const taken = new Set(g.genes.map((x) => x.name));
   const copies: Gene[] = ids.map((id) => {
     const orig = g.genes.find((x) => x.id === id)!;
     const copy: Gene = { ...orig, id: copyOf.get(id)!, sites: orig.sites.map((s) => ({ ...s })) };
-    copy.name = `${orig.name}'`;
+    copy.name = paralogName(orig.name, taken);
+    taken.add(copy.name);
     if (dosage === 'neutral') {
       orig.rate /= 2;
       copy.rate /= 2;

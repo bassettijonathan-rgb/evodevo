@@ -1,0 +1,281 @@
+{
+  "schema": 1,
+  "nextGeneId": 12,
+  "genes": [
+    {
+      "id": 0,
+      "name": "g0",
+      "type": "effector",
+      "bias": 3.1013368883551946,
+      "rate": 0.41646541205416854,
+      "decay": 0.4901902040140743,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 6,
+          "weight": -7.29170743701448
+        },
+        {
+          "regulator": 9,
+          "weight": -5.261736975060886
+        },
+        {
+          "regulator": 7,
+          "weight": -1.92607676729639
+        }
+      ],
+      "effector": "divide"
+    },
+    {
+      "id": 8,
+      "name": "g0'",
+      "type": "effector",
+      "bias": 0.9541663239248871,
+      "rate": 0.5,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 9,
+          "weight": -6.888790525441921
+        },
+        {
+          "regulator": 7,
+          "weight": -2.755718338422624
+        },
+        {
+          "regulator": 0,
+          "weight": 1.035548360870002
+        }
+      ],
+      "effector": "divide"
+    },
+    {
+      "id": 2,
+      "name": "g2",
+      "type": "tf",
+      "bias": -2.0383844439826784,
+      "rate": 1,
+      "decay": 1.0204272283229108,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 0,
+          "weight": -2.39969699888473
+        },
+        {
+          "regulator": 8,
+          "weight": -0.8664920070854435
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "g3",
+      "type": "adhesion",
+      "bias": 1.3921249908922526,
+      "rate": 0.9104659926554183,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 8,
+          "weight": 0.06788454589864792
+        },
+        {
+          "regulator": 2,
+          "weight": -4.711353160530905
+        },
+        {
+          "regulator": 4,
+          "weight": -0.576183625702182
+        },
+        {
+          "regulator": 10,
+          "weight": -0.9284151660941363
+        },
+        {
+          "regulator": 11,
+          "weight": -0.9284151660941363
+        },
+        {
+          "regulator": 9,
+          "weight": 0.8123409437355128
+        },
+        {
+          "regulator": 6,
+          "weight": -2.5261786680061533
+        }
+      ],
+      "binding": 1
+    },
+    {
+      "id": 4,
+      "name": "g4",
+      "type": "tf",
+      "bias": -1.7660268518958855,
+      "rate": 0.5,
+      "decay": 1.6953525403360055,
+      "asymmetry": -0.21338571276342921,
+      "sites": [
+        {
+          "regulator": 6,
+          "weight": 0.5595325329734042
+        },
+        {
+          "regulator": 5,
+          "weight": 1.8026491340900404
+        },
+        {
+          "regulator": 2,
+          "weight": -0.6167725815137141
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "g4'",
+      "type": "tf",
+      "bias": -1.7660268518958855,
+      "rate": 0.25,
+      "decay": 1.1401444006520445,
+      "asymmetry": -0.21338571276342921,
+      "sites": [
+        {
+          "regulator": 6,
+          "weight": 0.5595325329734042
+        },
+        {
+          "regulator": 5,
+          "weight": 1.5476404407643802
+        },
+        {
+          "regulator": 2,
+          "weight": -0.6167725815137141
+        },
+        {
+          "regulator": 9,
+          "weight": 0.2726378997649962
+        },
+        {
+          "regulator": 10,
+          "weight": 0.585729758581743
+        },
+        {
+          "regulator": 11,
+          "weight": 0.585729758581743
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "g4''",
+      "type": "tf",
+      "bias": -1.7660268518958855,
+      "rate": 0.25,
+      "decay": 1.1401444006520445,
+      "asymmetry": -0.21338571276342921,
+      "sites": [
+        {
+          "regulator": 6,
+          "weight": 0.5595325329734042
+        },
+        {
+          "regulator": 5,
+          "weight": 1.5476404407643802
+        },
+        {
+          "regulator": 2,
+          "weight": -0.6167725815137141
+        },
+        {
+          "regulator": 9,
+          "weight": 0.2726378997649962
+        },
+        {
+          "regulator": 10,
+          "weight": 0.585729758581743
+        },
+        {
+          "regulator": 11,
+          "weight": 0.585729758581743
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "g5",
+      "type": "morphogen",
+      "bias": -1.163807125428545,
+      "rate": 1,
+      "decay": 1,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 4,
+          "weight": -3.5926258252809427
+        },
+        {
+          "regulator": 10,
+          "weight": -3.732217368270512
+        },
+        {
+          "regulator": 11,
+          "weight": -3.732217368270512
+        },
+        {
+          "regulator": 8,
+          "weight": -3.1292424111101007
+        }
+      ],
+      "diffusion": 0.8372340666490443,
+      "secretion": 0.7402783971032422,
+      "fieldDecay": 0.027348868978123064,
+      "binding": 1
+    },
+    {
+      "id": 6,
+      "name": "g6",
+      "type": "tf",
+      "bias": -2.990526443497568,
+      "rate": 0.5,
+      "decay": 1.320394395836556,
+      "asymmetry": 0,
+      "sites": []
+    },
+    {
+      "id": 9,
+      "name": "g6'",
+      "type": "tf",
+      "bias": -2.990526443497568,
+      "rate": 0.5,
+      "decay": 0.574529506438885,
+      "asymmetry": 0,
+      "sites": [
+        {
+          "regulator": 9,
+          "weight": -0.40519046489546984
+        },
+        {
+          "regulator": 5,
+          "weight": -3.025005170612422
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "g7",
+      "type": "morphogen",
+      "bias": 2.3554331777730155,
+      "rate": 1,
+      "decay": 1.1858652138498942,
+      "asymmetry": -0.10689080705696603,
+      "sites": [],
+      "diffusion": 0.4801132855865493,
+      "secretion": 0.9253070048706755,
+      "fieldDecay": 0.28927487288255244,
+      "binding": 1.0728030926568766
+    }
+  ],
+  "maternal": {}
+}

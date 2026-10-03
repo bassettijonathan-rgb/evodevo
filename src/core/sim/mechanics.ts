@@ -76,48 +76,41 @@ export class SpatialHash {
   pairCount = 0;
 
   /**
-   * List every unordered pair of cells closer than `reach`, visiting each pair once:
-   * pairs within a bin, plus pairs with the four "forward" neighbour bins
-   * (E, N, NE, NW) — the half-stencil. Call after build().
+   * List every unordered pair of cells closer than `reach`, each pair once:
+   * for each cell, later cells in its own bin plus all cells in the four
+   * "forward" neighbour bins (E, N, NE, NW) — the half-stencil. O(n), independent
+   * of how many bins are empty. Call after build().
    */
   collectPairs(cells: CellStore, reach: number): void {
-    const { bx, by, start, items } = this;
+    const { bx, by, start, items, binOf } = this;
     const { px, py } = cells;
     const r2 = reach * reach;
     let count = 0;
-    const push = (a: number, b: number) => {
-      if (count === this.pairA.length) {
-        const grow = (old: Int32Array) => { const nw = new Int32Array(Math.max(1024, old.length * 2)); nw.set(old); return nw; };
-        this.pairA = grow(this.pairA);
-        this.pairB = grow(this.pairB);
-      }
-      this.pairA[count] = a;
-      this.pairB[count] = b;
-      count++;
-    };
-    for (let j = 0; j < by; j++) {
-      for (let i = 0; i < bx; i++) {
-        const b0 = j * bx + i;
-        for (let k = start[b0]; k < start[b0 + 1]; k++) {
-          const a = items[k];
-          const ax = px[a], ay = py[a];
-          // Same bin: later items only.
-          for (let m = k + 1; m < start[b0 + 1]; m++) {
-            const b = items[m];
-            const dx = px[b] - ax, dy = py[b] - ay;
-            if (dx * dx + dy * dy < r2) push(a, b);
+    let A = this.pairA, B = this.pairB;
+    for (let a = 0; a < cells.n; a++) {
+      const b0 = binOf[a];
+      const i = b0 % bx, j = (b0 - i) / bx;
+      const ax = px[a], ay = py[a];
+      for (let q = -1; q < 4; q++) {
+        let bin = b0;
+        if (q >= 0) {
+          const ni = i + FORWARD_DI[q], nj = j + FORWARD_DJ[q];
+          if (ni < 0 || ni >= bx || nj >= by) continue;
+          bin = nj * bx + ni;
+        }
+        for (let m = start[bin]; m < start[bin + 1]; m++) {
+          const b = items[m];
+          if (q < 0 && b <= a) continue; // same bin: each pair once
+          const dx = px[b] - ax, dy = py[b] - ay;
+          if (dx * dx + dy * dy >= r2) continue;
+          if (count === A.length) {
+            const grow = (old: Int32Array) => { const nw = new Int32Array(Math.max(1024, old.length * 2)); nw.set(old); return nw; };
+            A = this.pairA = grow(A);
+            B = this.pairB = grow(B);
           }
-          // Forward neighbour bins.
-          for (let q = 0; q < 4; q++) {
-            const ni = i + FORWARD_DI[q], nj = j + FORWARD_DJ[q];
-            if (ni < 0 || ni >= bx || nj >= by) continue;
-            const b1 = nj * bx + ni;
-            for (let m = start[b1]; m < start[b1 + 1]; m++) {
-              const b = items[m];
-              const dx = px[b] - ax, dy = py[b] - ay;
-              if (dx * dx + dy * dy < r2) push(a, b);
-            }
-          }
+          A[count] = a;
+          B[count] = b;
+          count++;
         }
       }
     }
@@ -153,6 +146,9 @@ export class SpatialHash {
 // Half-stencil: E, NW, N, NE (with the bin itself this covers every adjacent pair once).
 const FORWARD_DI = [1, -1, 0, 1];
 const FORWARD_DJ = [0, 1, 1, 1];
+
+/** Verlet-list skin [ℓ]: extra reach so the pair list stays valid while cells move < SKIN/2. */
+const SKIN = 0.3;
 
 /** Upper limit on adaptive mechanics sub-steps per developmental step. */
 const MAX_SUBSTEPS = 60;
@@ -201,6 +197,8 @@ export class Mechanics {
   /** Sub-steps used by the last step() (adaptive; for diagnostics). */
   lastSubsteps = 0;
   private stiff = new Float64Array(0);
+  private refX = new Float64Array(0);
+  private refY = new Float64Array(0);
 
   /**
    * Explicit (forward Euler) integration of a stiff gradient flow is stable only
@@ -249,8 +247,18 @@ export class Mechanics {
     const cut = cutoff(cells, cfg);
     const W = this.width, H = this.height;
 
-    hash.build(cells, W, H, cut);
-    hash.collectPairs(cells, cut);
+    // Verlet neighbour list: pairs within cut + skin, rebuilt only when some cell
+    // has moved more than skin/2 since the last build (then no pair within `cut`
+    // can be missing).
+    const reachList = cut + SKIN;
+    const rebuild = () => {
+      hash.build(cells, W, H, reachList);
+      hash.collectPairs(cells, reachList);
+      if (this.refX.length < cells.capacity) { this.refX = new Float64Array(cells.capacity); this.refY = new Float64Array(cells.capacity); }
+      this.refX.set(px.subarray(0, cells.n));
+      this.refY.set(py.subarray(0, cells.n));
+    };
+    rebuild();
     const substeps = (this.lastSubsteps = this.substepsNeeded(cells));
     const dt = cfg.dt / substeps;
     const mob = dt / cfg.drag;
@@ -264,8 +272,13 @@ export class Mechanics {
       fx.fill(0, 0, n);
       fy.fill(0, 0, n);
       if (s > 0) {
-        hash.build(cells, W, H, cut);
-        hash.collectPairs(cells, cut);
+        let moved = 0;
+        for (let c = 0; c < n; c++) {
+          const dx = px[c] - this.refX[c], dy = py[c] - this.refY[c];
+          const d2 = dx * dx + dy * dy;
+          if (d2 > moved) moved = d2;
+        }
+        if (moved > (SKIN / 2) * (SKIN / 2)) rebuild();
       }
       const { pairA, pairB, pairCount } = hash;
       for (let k = 0; k < pairCount; k++) {

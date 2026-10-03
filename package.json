@@ -9,12 +9,16 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",
     "test:science": "vitest run tests/science",
-    "test:all": "vitest run"
+    "test:all": "vitest run",
+    "e2e": "node tests/e2e/ui.e2e.mjs",
+    "experiment": "tsx scripts/experiment.ts",
+    "report": "tsx scripts/report.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
     "@types/d3-force": "^3.0.10",
     "@types/node": "^26.6.4",
+    "playwright": "1.56",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",

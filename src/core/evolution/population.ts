@@ -125,17 +125,43 @@ export class Evolution {
   private readonly cache = new Map<string, EvalResult>();
   private readonly archive: number[][] = [];
 
-  constructor(founders: Genome[], settings: Partial<EvolutionSettings> = {}) {
+  /**
+   * @param founders  genomes of the first generation (padded with their mutants)
+   * @param lineage   continue an existing phylogeny: ids start at `startId`, and
+   *                  founder k descends from `founderParents[k]`, generations
+   *                  continue from `startGeneration`
+   */
+  constructor(
+    founders: Genome[],
+    settings: Partial<EvolutionSettings> = {},
+    lineage: { startId?: number; founderParents?: number[][]; startGeneration?: number } = {},
+  ) {
     this.settings = { ...DEFAULT_EVOLUTION, ...settings };
     this.rng = new Rng(this.settings.seed).fork('evolution');
-    // Fill the first generation with mutants of the founders (founders themselves first).
-    const pop: Individual[] = founders.map((g) => this.newIndividual(g, [], []));
+    this.nextId = lineage.startId ?? 0;
+    this.generation = lineage.startGeneration ?? 0;
+    const parentsOf = (k: number) => lineage.founderParents?.[k % founders.length] ?? [];
+    // Fill the first generation with the founders, then mutants of them.
+    const pop: Individual[] = founders.map((g, k) => this.newIndividual(g, parentsOf(k), []));
     while (pop.length < this.settings.populationSize) {
-      const parent = founders[pop.length % founders.length];
-      const m = mutate(parent, this.rng, this.settings.mutation);
-      pop.push(this.newIndividual(m.genome, [], m.log));
+      const k = pop.length % founders.length;
+      const m = mutate(founders[k], this.rng, this.settings.mutation);
+      pop.push(this.newIndividual(m.genome, parentsOf(k), m.log));
     }
     this.population = pop.slice(0, this.settings.populationSize);
+  }
+
+  /** Replace the population with saved individuals (resuming a session). */
+  restore(population: Individual[], nextId: number, generation: number): void {
+    this.population = population;
+    for (const ind of population) this.history.set(ind.id, ind);
+    this.nextId = nextId;
+    this.generation = generation;
+  }
+
+  /** The id the next new individual will get (to continue a lineage in a new run). */
+  get nextIndividualId(): number {
+    return this.nextId;
   }
 
   private newIndividual(genome: Genome, parents: number[], log: string[]): Individual {

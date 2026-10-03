@@ -66,3 +66,6 @@ canvas.pickable { cursor: crosshair; }
 @media (max-width: 600px) { main { padding: 10px; } .tagline { display: none; } }
 .legend { list-style: none; padding: 0; margin: 6px 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
 .legend .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.tree-scroll { overflow: auto; max-height: 70vh; border-radius: 8px; background: var(--canvas); }
+.pnode { cursor: pointer; }
+.detail .row { align-items: flex-start; }

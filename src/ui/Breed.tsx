@@ -9,6 +9,12 @@ import {
   mutationScale, openInLab, population, runTargetSelection, startBreeding, toggleChosen,
 } from './state';
 import { Thumb } from './Thumb';
+import { useEffect } from 'preact/hooks';
+import { signal } from '@preact/signals';
+import { loadSavedSession } from './session';
+import { resumeSession } from './state';
+
+const savedSession = signal<{ generation: number; savedAt: number } | null>(null);
 import { Sparkline } from './Sparkline';
 
 const BREEDABLE = PRESETS.filter((p) => !p.initial);
@@ -21,6 +27,9 @@ const METRIC_LABELS: Record<NumericMetric, string> = {
 export function Breed() {
   const evo = evolution.value;
   const pop = population.value;
+  useEffect(() => {
+    if (!evolution.value) void loadSavedSession().then((s) => { savedSession.value = s ? { generation: s.meta.generation, savedAt: s.meta.savedAt } : null; });
+  }, []);
   return (
     <div class="breed">
       <section class="panel controls">
@@ -31,6 +40,11 @@ export function Breed() {
             </select>
           </label>
           <button onClick={() => startBreeding(breedPreset.value)} disabled={!!busy.value}>{evo ? 'Restart' : 'Start'}</button>
+          {!evo && savedSession.value && (
+            <button onClick={() => resumeSession()} disabled={!!busy.value}>
+              Resume saved session (generation {savedSession.value.generation}, {new Date(savedSession.value.savedAt).toLocaleString()})
+            </button>
+          )}
           <span class="muted">{breedPreset.value.description}</span>
         </div>
         {evo && (

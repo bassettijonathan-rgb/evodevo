@@ -1,5 +1,46 @@
 # Changelog
 
+## M5: The game UI
+
+**Built** (Preact + signals, d3-force for the GRN layout, Canvas2D)
+- **Breed**: interactive selection on a 12-organism brood (one parent, or two for
+  crossover), a mutation-strength slider, and *Inspect in lab*. *Target selection*
+  runs automatic generations with a fitness you assemble from metric terms ("reach
+  at least" or "match"), with a best-fitness sparkline.
+- **Lab**: grows any organism or preset in a worker and keeps the recording.
+  - Playback with play/pause and a scrubber.
+  - Overlays: cell type (with a legend naming the genes that are on in each type),
+    expression of any gene, lineage (8-cell founder clones), morphogen field heatmap,
+    polarity arrows, and fit to cells or to the whole grid.
+  - Interactive GRN: node shape = product type, fill = mean expression at the current
+    frame, edge width ∝ |w|, green = activation, red = repression, dashed = inert.
+  - Gene panel with parameters (including the morphogen decay length L = √(D/k)) and
+    inputs.
+  - Perturbations: knockout, overexpression, and ectopic expression in a clicked
+    region from a chosen time. *Regrow perturbed* shows wild type and mutant side by
+    side with a metrics table and a homeotic-transformation readout.
+- Presets: French flag embryo, French flag tissue, Turing stripes and spots, cell
+  sorting, lateral inhibition, random founder.
+- Save and load genomes as JSON.
+- `npm run e2e`: a Playwright smoke test that drives breeding, the lab (preset,
+  overlays, knockout, regrow) and the phylogeny in headless Chromium, and fails on
+  any page error.
+
+**Checked by hand** (screenshots): the Turing labyrinth renders under the field
+overlay. In the French flag embryo, knocking out the maternal organiser S turns blue
+and white cells into the default red fate, and the lab reports it as a
+transformation into another wild-type fate. That is the logic of the bicoid phenotype.
+
+**Not done from DESIGN.md §9**: the mechanical-stress overlay (frames do not record
+forces yet), the hover-to-play mini timelines on brood cards, and "lock a gene" in
+breeding.
+
+**Known limitation**: cell types are defined by transcription-factor and contact
+genes only (D7), so the Turing presets, which are made only of morphogens, count as
+one cell type. Including morphogen and adhesion genes in the signature is probably
+the better definition. I'll revisit it after the M4 experiment, which uses the
+current one.
+
 ## M4: Mutation, evolution loop, workers, metrics (report pending)
 
 **Built**

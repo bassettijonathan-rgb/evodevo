@@ -6,7 +6,7 @@ import { computed, signal } from '@preact/signals';
 import type { EvalResult } from '../core/evolution/evaluate';
 import { Evolution, type FitnessTerm, type Individual } from '../core/evolution/population';
 import { compileGenome, type CompiledGRN } from '../core/genome/compile';
-import { cloneGenome } from '../core/genome/serialize';
+import { cloneGenome, genomeHash as hashOf } from '../core/genome/serialize';
 import type { Genome } from '../core/genome/types';
 import type { SimConfig } from '../core/config';
 import type { InitialCondition } from '../core/sim/develop';
@@ -14,6 +14,7 @@ import type { Perturbation } from '../core/sim/perturb';
 import { browserPool } from '../workers/pool';
 import type { EvalPool } from '../workers/pool';
 import { PRESETS, type Preset } from '../presets';
+import { clearSession, loadSavedSession, phylo, recordPopulation, sessionMeta, type SessionNode } from './session';
 
 export type Page = 'breed' | 'lab' | 'phylogeny';
 export const page = signal<Page>('breed');
@@ -51,11 +52,14 @@ function breedSim(p: Preset): Partial<SimConfig> {
 async function evaluatePopulation(): Promise<void> {
   const evo = evolution.value!;
   await evo.evaluate((jobs) => pool().evaluate(jobs));
+  recordPopulation(evo, breedPreset.value.id);
   evoTick.value++;
 }
 
+/** Start a new breeding session from a preset (clears the phylogeny). */
 export async function startBreeding(p: Preset, founder?: Genome): Promise<void> {
   breedPreset.value = p;
+  await clearSession();
   const genome = founder ?? p.genome();
   evolution.value = new Evolution([genome], {
     populationSize: BREED_SIZE,
@@ -68,6 +72,47 @@ export async function startBreeding(p: Preset, founder?: Genome): Promise<void> 
   busy.value = 'Growing the first brood…';
   await evaluatePopulation();
   busy.value = null;
+}
+
+/** Continue breeding from any node of the phylogeny (keeps the tree). */
+export async function breedFrom(node: SessionNode): Promise<void> {
+  const meta = sessionMeta.value;
+  evolution.value = new Evolution([node.genome], {
+    populationSize: BREED_SIZE,
+    sim: node.sim,
+    objective: { kind: 'interactive' },
+    seed: `breed-${Date.now()}`,
+  }, { startId: meta?.nextId ?? 0, founderParents: [[node.id]], startGeneration: node.generation + 1 });
+  chosen.value = [];
+  page.value = 'breed';
+  busy.value = 'Growing offspring…';
+  await evaluatePopulation();
+  busy.value = null;
+}
+
+/** Resume the session saved in IndexedDB, if any. */
+export async function resumeSession(): Promise<boolean> {
+  const saved = await loadSavedSession();
+  if (!saved) return false;
+  const { meta, nodes } = saved;
+  phylo.value = new Map(nodes.map((n) => [n.id, n]));
+  sessionMeta.value = meta;
+  breedPreset.value = PRESETS.find((p) => p.id === meta.presetId) ?? breedPreset.value;
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const current = meta.current.map((id) => byId.get(id)!).filter(Boolean);
+  const evo = new Evolution([current[0].genome], { populationSize: current.length, sim: meta.sim, objective: { kind: 'interactive' }, seed: meta.seed });
+  evo.restore(
+    current.map((n) => ({ id: n.id, parents: n.parents, generation: n.generation, genome: n.genome, hash: hashOf(n.genome), log: n.log })),
+    meta.nextId,
+    meta.generation,
+  );
+  evolution.value = evo;
+  chosen.value = [];
+  page.value = 'breed';
+  busy.value = 'Regrowing the saved brood…';
+  await evaluatePopulation();
+  busy.value = null;
+  return true;
 }
 
 export function toggleChosen(id: number): void {
@@ -94,15 +139,16 @@ export async function breedNext(): Promise<void> {
 export async function runTargetSelection(generations: number): Promise<void> {
   const evo = evolution.value;
   if (!evo) return;
-  const seeds = (chosen.value.length ? evo.population.filter((i) => chosen.value.includes(i.id)) : evo.population).map((i) => i.genome);
-  const target = new Evolution(seeds, {
+  const parents = chosen.value.length ? evo.population.filter((i) => chosen.value.includes(i.id)) : evo.population;
+  const target = new Evolution(parents.map((i) => i.genome), {
     populationSize: 24,
     sim: evo.settings.sim,
     objective: { kind: 'weighted', terms: fitnessTerms.value },
     seed: `target-${Date.now()}`,
-  });
-  // Keep one phylogeny: merge the new run's history into the session's.
+  }, { startId: evo.nextIndividualId, founderParents: parents.map((i) => [i.id]), startGeneration: evo.generation + 1 });
+  // One phylogeny: the new run continues the lineage of the chosen parents.
   evolution.value = target;
+  chosen.value = [];
   autoRunning.value = true;
   fitnessHistory.value = [];
   for (let g = 0; g < generations && autoRunning.value; g++) {

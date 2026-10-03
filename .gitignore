@@ -3,3 +3,4 @@ dist/
 *.log
 .DS_Store
 reports/m4-data/
+e2e-failure.png

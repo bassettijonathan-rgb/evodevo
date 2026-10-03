@@ -21,7 +21,7 @@ const BREEDABLE = PRESETS.filter((p) => !p.initial);
 const METRIC_LABELS: Record<NumericMetric, string> = {
   cells: 'cells', area: 'area', cellTypes: 'cell types', typeEntropy: 'type entropy', elongation: 'elongation',
   shapeBilateral: 'shape mirror symmetry', patternBilateral: 'pattern mirror symmetry (κ)',
-  patternRadial: 'pattern rotational symmetry (κ)', radialOrder: 'rotational order', segments: 'segments',
+  patternRadial: 'pattern rotational symmetry (κ)', radialOrder: 'rotational order', patternIsotropy: 'pattern isotropy (κ at 37°)', segments: 'segments',
 };
 
 export function Breed() {

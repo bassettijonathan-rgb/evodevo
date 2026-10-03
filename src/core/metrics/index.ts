@@ -41,6 +41,14 @@ export interface Metrics {
   /** Best n ≥ 3 rotational symmetry of the type pattern beyond chance (κ), and its order. */
   patternRadial: number;
   radialOrder: number;
+  /**
+   * κ of the type pattern under a 37° rotation, an angle no discrete symmetry of
+   * order ≤ 8 has. High only for (near-)continuous rotational symmetry, e.g.
+   * concentric rings around the centre, the "trivial" symmetry of an unpolarized
+   * organism reading its own radial gradient (DESIGN.md D10). Non-trivial symmetry
+   * needs high mirror or n-fold κ AND low isotropy.
+   */
+  patternIsotropy: number;
   /** Number of segments (regular stripes spanning the body), 0 if fewer than 3. */
   segments: number;
   /** Gene (name) carrying the segment pattern, if any. */
@@ -236,7 +244,7 @@ function segmentsOfGene(s: OrganismState, g: number, nbrs: number[][], axis: Ret
 export function computeMetrics(s: OrganismState): Metrics {
   const empty: Metrics = {
     cells: s.n, area: 0, cellTypes: 0, typeEntropy: 0, elongation: 1,
-    shapeBilateral: 0, patternBilateral: 0, patternRadial: 0, radialOrder: 0, segments: 0, segmentGene: '',
+    shapeBilateral: 0, patternBilateral: 0, patternRadial: 0, radialOrder: 0, patternIsotropy: 0, segments: 0, segmentGene: '',
   };
   if (s.n < 3) return { ...empty, cellTypes: s.n > 0 ? 1 : 0 };
 
@@ -249,6 +257,8 @@ export function computeMetrics(s: OrganismState): Metrics {
   for (const l of raster.label) if (l !== -2) occupied++;
   const bi = bilateral(raster);
   const rot = types.signatures.length >= 2 ? rotational(raster) : { kappa: 0, order: 0 };
+  const iso = (37 * Math.PI) / 180;
+  const isotropy = types.signatures.length >= 2 ? agreement(raster, cos(iso), -sin(iso), sin(iso), cos(iso)).kappa : 0;
 
   const nbrs = neighbours(s);
   let segments = 0, segmentGene = '';
@@ -267,6 +277,7 @@ export function computeMetrics(s: OrganismState): Metrics {
     patternBilateral: types.signatures.length >= 2 ? bi.kappa : 0,
     patternRadial: rot.kappa,
     radialOrder: rot.order,
+    patternIsotropy: Math.max(0, isotropy),
     segments,
     segmentGene,
   };

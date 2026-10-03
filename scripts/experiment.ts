@@ -3,6 +3,8 @@
  *
  * Selected runs: fitness = body size + number of cell types ONLY.
  * Drift runs:    no selection (random fitness) — the null model.
+ * Size-only runs: selection for body size alone — viable organisms with no
+ *                 pressure on pattern (a second null; --sizeonly N).
  * Every evaluated individual's metrics are kept, so "did segmentation or
  * symmetry ever appear" can be asked of the whole history, not just the end.
  *
@@ -23,12 +25,18 @@ const args = Object.fromEntries(
 );
 const RUNS = Number(args.runs ?? 10);
 const DRIFT = Number(args.drift ?? 6);
+/** Control: selection for size only (viable organisms, no pressure on pattern). */
+const SIZE_ONLY = Number(args.sizeonly ?? 0);
 const GENS = Number(args.gens ?? 120);
 const POP = Number(args.pop ?? 32);
 const OUT = args.out ?? 'reports/m4';
 mkdirSync(OUT, { recursive: true });
 
 const SIM = { gridNx: 64, gridNy: 64, maxCells: 200, tDev: 150 };
+const SIZE: EvolutionSettings['objective'] = {
+  kind: 'weighted',
+  terms: [{ metric: 'cells', mode: 'maximize', target: 200, weight: 1 }],
+};
 const SELECTED: EvolutionSettings['objective'] = {
   kind: 'weighted',
   terms: [
@@ -49,14 +57,14 @@ interface Record {
 const pool = nodePool();
 const started = Date.now();
 
-async function runOne(kind: 'selected' | 'drift', index: number): Promise<void> {
+async function runOne(kind: 'selected' | 'drift' | 'sizeonly', index: number): Promise<void> {
   const file = `${OUT}/${kind}-${index}.json`;
   if (existsSync(file)) { console.log(`skip ${file} (exists)`); return; }
   const founder = randomFounder(new Rng(`founder-${index}`), 8);
   const evo = new Evolution([founder], {
     populationSize: POP,
     sim: SIM,
-    objective: kind === 'selected' ? SELECTED : { kind: 'random' },
+    objective: kind === 'selected' ? SELECTED : kind === 'sizeonly' ? SIZE : { kind: 'random' },
     seed: `${kind}-${index}`,
   });
   const perGen: { gen: number; bestFitness: number; meanCells: number; meanTypes: number; maxSegments: number; maxPatternBilateral: number; maxPatternRadial: number }[] = [];
@@ -66,7 +74,7 @@ async function runOne(kind: 'selected' | 'drift', index: number): Promise<void> 
     const m = pop.map((i) => i.result!.metrics);
     perGen.push({
       gen,
-      bestFitness: kind === 'selected' ? evo.best().fitness! : NaN,
+      bestFitness: kind === 'drift' ? NaN : evo.best().fitness!,
       meanCells: m.reduce((a, x) => a + x.cells, 0) / m.length,
       meanTypes: m.reduce((a, x) => a + x.cellTypes, 0) / m.length,
       maxSegments: Math.max(...m.map((x) => x.segments)),
@@ -89,9 +97,10 @@ async function runOne(kind: 'selected' | 'drift', index: number): Promise<void> 
 }
 
 // Interleave selected and drift runs so a partial experiment still has both.
-for (let k = 0; k < Math.max(RUNS, DRIFT); k++) {
+for (let k = 0; k < Math.max(RUNS, DRIFT, SIZE_ONLY); k++) {
   if (k < RUNS) await runOne('selected', k);
   if (k < DRIFT) await runOne('drift', k);
+  if (k < SIZE_ONLY) await runOne('sizeonly', k);
 }
 pool.terminate();
 console.log(`done in ${((Date.now() - started) / 60000).toFixed(1)} min`);

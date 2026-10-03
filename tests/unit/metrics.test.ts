@@ -72,6 +72,17 @@ describe('symmetry', () => {
     expect(m.patternRadial).toBeGreaterThan(0.6);
   });
 
+  it('isotropy separates concentric (trivial) patterns from discrete symmetries', () => {
+    const r = (x: number, y: number) => Math.hypot(x - 32, y - 32);
+    const rings = computeMetrics(organism(disc, (x, y) => [r(x, y) < 4 ? 1 : 0, r(x, y) > 8 ? 1 : 0]));
+    expect(rings.patternBilateral).toBeGreaterThan(0.8); // mirror-symmetric about every axis…
+    expect(rings.patternIsotropy).toBeGreaterThan(0.7); // …because it is isotropic
+    const arms = computeMetrics(organism(disc, (x, y) => [Math.min(Math.abs(x - 32), Math.abs(y - 32)) < 1.5 ? 1 : 0, r(x, y) < 4 ? 1 : 0]));
+    expect(arms.patternIsotropy).toBeLessThan(0.35);
+    const mirror = computeMetrics(organism(disc, (x, y) => [Math.abs(y - 32) > 4 ? 1 : 0, x > 34 ? 1 : 0]));
+    expect(mirror.patternIsotropy).toBeLessThan(0.35);
+  });
+
   it('a 3-fold pattern is detected as order 3, not 6', () => {
     const m = computeMetrics(organism(disc, (x, y) => {
       const a = Math.atan2(y - 32, x - 32);

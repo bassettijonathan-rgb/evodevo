@@ -1,6 +1,6 @@
 # EvoDevo: Design Document
 
-Status: **draft, awaiting approval**. No simulation code exists yet.
+Status: **approved and implemented (M1–M6)**. §15 lists what changed during implementation.
 
 This document describes the model, data structures, architecture and milestone plan for
 a browser-based evo-devo simulation. Organisms grow from a single cell under a gene
@@ -786,3 +786,33 @@ with the GRN on a multirate step.
 - Osborne J.M. et al. (2017) Comparing individual-based approaches to modelling the self-organization of multicellular tissues. *PLoS Comput Biol* 13:e1005387.
 - Lehman J., Stanley K.O. (2011) Abandoning objectives: evolution through the search for novelty alone. *Evol Comput* 19:189–223.
 - Dawkins R. (1986) *The Blind Watchmaker* (biomorphs); Secretan J. et al. (2011) Picbreeder. *Evol Comput* 19:373–403.
+
+
+---
+
+## 15. Changes made during implementation
+
+The model above was implemented as written, except for the changes below. Each one
+was forced by a test or a measurement, and the CHANGELOG has the details.
+
+| Area | Design said | Implemented | Why |
+|---|---|---|---|
+| Repulsion | linear spring k·δ | **k·δ·s/d**: linear for small overlaps, diverging as centres meet | Strong adhesion collapsed cells onto each other (overlaps up to 0.99). Cells are nearly incompressible. |
+| Adhesion | A₀ + Σ J·min(a,b) | A₀ + S/(1 + S/A_max), with **A_max = 1.5** | Bonds per contact are finite. Without the cap, second-shell neighbours entered the adhesion range and aggregates over-compacted. Saturation acts on the sum, so neutral duplication still holds. |
+| Mechanics time step | fixed sub-steps | **adaptive sub-steps** from a bound on the largest stiffness eigenvalue, plus Verlet neighbour lists | Explicit Euler was marginally unstable: aggregates fragmented differently at 5 and 10 sub-steps. |
+| Motility noise | a kick every sub-step | one kick per developmental step with the full-step variance | Same statistics, ~5× fewer random draws (it was the top profile entry). |
+| Duplication neutrality | bit-identical phenotype | identical to < 1e-9 (expression) / 1e-6 (positions) | w·x/2 + w·x/2 ≠ w·x exactly in floating point. |
+| Portable math | exp in the simulation | exp, log, sin, cos, hypot everywhere outside `analysis/`, enforced by a test | Metrics feed fitness, so they must be reproducible across engines too. |
+| Cell sorting | default motility | sorting needs k_BT ≈ 0.03–0.05; default 0.002 is "cold" | At low noise aggregates jam. Above ~0.06 weakly adhesive cells evaporate. |
+| French flag read-out | three thresholds + cross-repression | thresholds **plus self-activation** (bistable switches), bias shifted by −feedback/2 | A pure threshold read-out of a smooth gradient gives 6–10-cell-wide, leaky boundaries. |
+| Lint rule for `core` boundaries | ESLint | a Vitest test | Saves a dependency; same guarantee. |
+
+Open issues, recorded honestly:
+- **Oriented division does not elongate tissue on its own** (crowded chains buckle,
+  and cohesive tissue rounds up). Elongation needs a growth zone or convergent
+  extension, and neither is an explicit mechanism yet.
+- **Cell types use TF and contact genes only** (D7), so morphogen-only patterns
+  (Turing presets) count as one type. Including morphogen and adhesion genes is
+  probably better.
+- **Level-based sorting coarsens slowly**: within 1000τ it gives surface layering of
+  the low expressers, not a single central core.

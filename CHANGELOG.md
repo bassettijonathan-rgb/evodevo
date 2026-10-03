@@ -1,5 +1,40 @@
 # Changelog
 
+## M6: Phylogeny, save/load, polish, performance
+
+**Built**
+- **Phylogeny view.** Every organism shown in a breeding session goes into one tree,
+  including target-selection runs, which continue the lineage of the parents they
+  started from. Extinct lineages are hidden by default, and duplication events are
+  drawn as ◆. Clicking a node regrows the organism deterministically and lets you
+  inspect it, breed from it, save its genome, or export its whole lineage (genomes
+  plus mutation logs) as JSON.
+- **Sessions persist in IndexedDB** after every generation, and *Resume saved session*
+  restores the brood. Storage failures (private windows, blocked storage) are
+  tolerated.
+- **Gene locking**: mutation skips locked genes (set from the lab's gene panel).
+- **Mechanical-pressure overlay** (summed compressive contact force per cell).
+- **Performance**: Verlet neighbour lists (rebuilt only when a cell has moved more
+  than half the 0.3ℓ skin) and an O(n) per-cell pair search instead of looping over
+  every grid bin. Typical evolution organisms got 43% faster.
+- Docs: README (usage, code map, where to tweak the model) and DESIGN.md §15 (every
+  change made during implementation, and open issues).
+
+**Performance budget, measured honestly** (`scripts/budget.ts`, Node 22, measured
+while 4 worker threads were busy, so these numbers are pessimistic)
+- Evolution-sized organisms (200-cell cap, 64² grid, 150τ): about 0.15–0.3 s each.
+  A 32-organism generation on 4 cores takes about 1.5–3 s.
+- The DESIGN.md §11 worst case (1000 cells, 24 genes, 4 morphogens, 300τ): **6–7 s,
+  against a 0.5 s target.** The budget assumed organisms spend most of development
+  small. This one hits the cap at t ≈ 52 and stays there. At the cap a step costs
+  about 2.3–2.6 ms, split roughly equally between diffusion, mechanics (about 7
+  adaptive sub-steps) and gene expression (about 23 ns per gene update, mostly the
+  portable `exp`). A 64² grid instead of 128² saves only 15%.
+- Possible next levers, each with a trade-off: softer contacts (fewer sub-steps, but
+  the sorting calibration would need redoing); a table-interpolated sigmoid (about
+  1e-10 error, would loosen the exact M1 tests); WebAssembly or WebGL for diffusion
+  and mechanics. None is needed for evolution at the 200-cell scale.
+
 ## M5: The game UI
 
 **Built** (Preact + signals, d3-force for the GRN layout, Canvas2D)

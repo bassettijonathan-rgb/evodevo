@@ -41,6 +41,8 @@ export interface CompiledGRN {
 
   tfIdx: Int32Array;
   morphIdx: Int32Array;
+  /** Gene index → index of its field in the morphogen grid (−1 for non-morphogens). */
+  fieldOf: Int32Array;
   contactIdx: Int32Array;
   adhIdx: Int32Array;
   effIdx: Record<EffectorKind, Int32Array>;
@@ -117,6 +119,10 @@ export function compileGenome(genome: Genome, dt: number): CompiledGRN {
     EFFECTOR_KINDS.map((k) => [k, indicesWhere((i) => genes[i].type === 'effector' && genes[i].effector === k)]),
   ) as Record<EffectorKind, Int32Array>;
 
+  const morphIdx = indicesWhere((i) => genes[i].type === 'morphogen');
+  const fieldOf = new Int32Array(G).fill(-1);
+  morphIdx.forEach((g, m) => (fieldOf[g] = m));
+
   return {
     G, dt,
     ids: Int32Array.from(genes.map((g) => g.id)),
@@ -127,7 +133,8 @@ export function compileGenome(genome: Genome, dt: number): CompiledGRN {
     rowPtr, col: Int32Array.from(cols), weight: Float64Array.from(weights),
     sensed,
     tfIdx: indicesWhere((i) => genes[i].type === 'tf'),
-    morphIdx: indicesWhere((i) => genes[i].type === 'morphogen'),
+    morphIdx,
+    fieldOf,
     contactIdx: indicesWhere((i) => genes[i].type === 'contact'),
     adhIdx: indicesWhere((i) => genes[i].type === 'adhesion'),
     effIdx,

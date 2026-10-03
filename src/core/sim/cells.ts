@@ -72,6 +72,11 @@ export class CellStore {
     return this.n >= this.capacity;
   }
 
+  /** Allocate a fresh unique cell id. */
+  newId(): number {
+    return this.nextId++;
+  }
+
   /** Append a fresh cell with zeroed state. Returns its index. */
   add(px: number, py: number, radius: number, parentId = -1, birthTime = 0): number {
     if (this.full) throw new Error('CellStore is full');

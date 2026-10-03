@@ -32,6 +32,6 @@ export function principalAxes(xs: ArrayLike<number>, ys: ArrayLike<number>, n = 
   // Eigenvector for l1.
   let ax = sxy, ay = l1 - sxx;
   if (Math.abs(ax) + Math.abs(ay) < 1e-12) { ax = sxx >= syy ? 1 : 0; ay = sxx >= syy ? 0 : 1; }
-  const len = Math.hypot(ax, ay);
+  const len = Math.sqrt(ax * ax + ay * ay);
   return { cx, cy, l1, l2, ax: ax / len, ay: ay / len, elongation: Math.sqrt(l1 / Math.max(l2, 1e-12)) };
 }

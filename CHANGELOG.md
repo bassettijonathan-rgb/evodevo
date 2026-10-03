@@ -1,5 +1,68 @@
 # Changelog
 
+## M4: Mutation, evolution loop, workers, metrics (report pending)
+
+**Built**
+- `evolution/mutate.ts`, the mutation operators: weight and parameter changes
+  (log-normal for positive parameters), site gain, loss and rewiring,
+  single-gene, segmental (tandem) and whole-genome duplication, deletion,
+  product-type switching, and effector/cue changes. Every event is logged in
+  readable form, and rates are Poisson per reproduction.
+- Duplication copies a gene's inputs (cis-region) **and** its outputs (every site
+  that binds the original also binds the copy). In 'neutral' dosage mode both
+  copies' rates and maternal levels are halved, which leaves every downstream sum
+  unchanged (D2/D3).
+- `evolution/crossover.ts`: recombination aligned by gene id.
+- `evolution/population.ts`: generational GA with elitism and tournament selection,
+  plus novelty search, random (drift) and interactive selection. It caches
+  evaluations by genome hash, records the phylogeny, and derives organism seeds
+  from the experiment seed and the genome hash, so results don't depend on
+  scheduling.
+- `evolution/evaluate.ts`, `workers/` and `scripts/nodePool.ts`: the same
+  evaluation function runs in browser Web Workers and Node worker threads.
+- `metrics/`: cell types (expression signatures), type entropy, elongation, shape
+  mirror symmetry, **pattern** mirror and rotational symmetry as Cohen's κ (agreement
+  beyond chance, so a uniform blob scores 0), and segments (≥ 3 regular stripes that
+  each span the body width). Also the homeotic-transformation detector used by the
+  lab.
+- Portable `sin`, `cos`, `hypot`. A test now fails if anything in the simulation,
+  metrics or evolution code calls a non-portable `Math` function.
+- `scripts/experiment.ts` and `scripts/report.ts` for the emergence experiment.
+
+**Validated**: 74 unit tests
+- 2000 heavy random mutations always give valid, serialisable genomes, and mutation
+  is deterministic per seed.
+- **Neutral duplication leaves the phenotype unchanged**: duplicating each gene of
+  the French flag in turn (single, segmental, whole-genome) changes every expression
+  level by < 1e-9. A growing embryo with a duplicated divide effector and maternal
+  determinant develops identically (positions within 1e-6). 'Double' dosage does
+  change it (control). It is not bit-identical, as DESIGN.md had hoped, because
+  w·x/2 + w·x/2 is not exactly w·x in floating point.
+- Selection with elitism never loses fitness, and runs are reproducible.
+- The metrics give the right answer on synthetic organisms: stripes along a rod
+  count as segments; concentric rings, spots, irregular bands and a single stripe do
+  not. A uniform blob has shape symmetry but zero pattern symmetry. A mirror pattern
+  scores κ > 0.8 and random labels < 0.15. 4-fold and 3-fold rotational patterns are
+  identified with the right order.
+- Knocking out Blue in the French flag is detected as a transformation of the blue
+  band into the white fate.
+
+**Mechanics fixes found while profiling (these change M3 behaviour)**
+- **Collapse under strong adhesion.** With three cadherins, adhesion overwhelmed the
+  linear repulsion and cells piled onto each other (overlaps up to 0.99, about 58
+  neighbours per cell). Repulsion is now k·δ·s/d, which diverges as centres meet.
+  Specific adhesion now saturates, S/(1 + S/A_max), with A_max = 1.5 so adhesion
+  stays well below the compression stiffness. Saturation is applied after the sum,
+  so neutral duplication still holds.
+- **Explicit-integration instability.** The fixed 5 sub-steps were marginal
+  (Δt < 2γ/λ_max), and stiff contacts made aggregates fragment depending on the
+  sub-step count. The number of sub-steps is now chosen each step from a bound on
+  the largest stiffness eigenvalue, and results no longer depend on it.
+- After these changes the level-sorting experiment needs binding 2 and levels
+  1 vs 0.2 (adhesion 1.16 vs 0.62) to show its effect, and within 1000τ the high
+  expressers form several clusters under a surface layer of low expressers rather
+  than one central core. The test now checks that surface layering.
+
 ## M3: Mechanics, differential adhesion, lateral inhibition
 
 **Built**

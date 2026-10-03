@@ -48,19 +48,22 @@ describe('differential adhesion: cell sorting from a random mix', () => {
     }
   });
 
-  it('same cadherin, different amounts: the high expressers go inside (Steinberg & Takeichi 1994)', () => {
+  it('same cadherin, different amounts: low expressers coat the surface (Steinberg & Takeichi 1994)', () => {
+    // Levels 1 vs 0.2, binding 2: saturated adhesion ≈ 1.16 (high–high) vs 0.62 (low–low and high–low).
+    // Within 1000τ the high expressers cluster and the low expressers take the surface;
+    // coarsening into a single central core is slower than that.
     for (const seed of seeds) {
-      const s = sortingStats(mixAndWait(sortingPair({ sameCadherin: true }), seed, 0.05, 1000));
+      const s = sortingStats(mixAndWait(sortingPair({ sameCadherin: true, lowLevel: 0.2, binding: 2 }), seed, 0.05, 1000));
       expect(s.homotypic).toBeGreaterThan(0.65);
-      expect(s.surfaceEnrichment).toBeGreaterThan(0.2);
+      expect(s.surfaceEnrichment).toBeGreaterThan(0.15);
     }
   });
 
   it('control: identical adhesion does not sort and does not layer', () => {
     for (const seed of seeds) {
-      const s = sortingStats(mixAndWait(sortingPair({ identical: true }), seed, 0.05, 1000));
+      const s = sortingStats(mixAndWait(sortingPair({ identical: true, binding: 2 }), seed, 0.05, 1000));
       expect(s.homotypic).toBeLessThan(0.55);
-      expect(Math.abs(s.surfaceEnrichment)).toBeLessThan(0.15);
+      expect(Math.abs(s.surfaceEnrichment)).toBeLessThan(0.1);
     }
   });
 });

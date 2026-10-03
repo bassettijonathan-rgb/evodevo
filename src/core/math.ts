@@ -117,3 +117,32 @@ export function sigmoid(u: number): number {
 export function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
+
+const TWO_PI = 6.283185307179586;
+const PI = 3.141592653589793;
+
+/**
+ * sin and cos by range reduction to [−π, π] and a Taylor series to degree 27
+ * (truncation error < 1e-16 on that interval). Only used off the hot path
+ * (metrics), where reproducibility matters more than speed.
+ */
+export function sin(x: number): number {
+  let r = x - TWO_PI * Math.floor((x + PI) / TWO_PI);
+  if (r > PI) r -= TWO_PI;
+  const r2 = r * r;
+  let term = r, sum = r;
+  for (let k = 1; k <= 13; k++) {
+    term *= -r2 / ((2 * k) * (2 * k + 1));
+    sum += term;
+  }
+  return sum;
+}
+
+export function cos(x: number): number {
+  return sin(x + PI / 2);
+}
+
+/** √(x² + y²) using only correctly rounded operations (Math.hypot is not guaranteed to be). */
+export function hypot(x: number, y: number): number {
+  return Math.sqrt(x * x + y * y);
+}

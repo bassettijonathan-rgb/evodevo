@@ -6,11 +6,14 @@
  * Pair force along the line of centres (positive = push apart), with contact
  * distance s = r_c + r_n, distance d and overlap δ = s − d:
  *
- *   F = k_rep·max(δ, 0) − A_cn·ramp(δ)
+ *   F = k_rep·δ·(s/d) [δ > 0] − A_cn·ramp(δ)
  *   ramp = 1 for δ ≥ 0, falling linearly to 0 at δ = −adhesionRange
- *   A_cn = A₀ + Σ_k J_k · min(a_k(c), a_k(n))      (homophilic, cadherin-like)
+ *   A_cn = A₀ + S/(1 + S/A_max),  S = Σ_k J_k · min(a_k(c), a_k(n))   (homophilic, cadherin-like)
  *
- * An adhering pair rests at overlap δ* = A/k_rep.
+ * The repulsion is linear for small overlaps but diverges as the centres meet:
+ * cells are nearly incompressible, so strong adhesion cannot collapse them onto
+ * each other. Specific adhesion saturates (finite bond sites per contact).
+ * An adhering pair rests where k_rep·δ·s/(s − δ) = A, i.e. δ* = A·s/(k_rep·s + A).
  *
  * Neighbour search uses a uniform spatial hash rebuilt every sub-step, so each
  * step is O(n). Pairs are visited in a fixed order, so results are deterministic.
@@ -19,6 +22,7 @@ import type { SimConfig } from '../config';
 import type { CompiledGRN } from '../genome/compile';
 import type { Rng } from '../rng';
 import type { CellStore } from './cells';
+import { log } from '../math';
 
 /** Uniform-grid spatial hash with counting-sort buckets. */
 export class SpatialHash {
@@ -66,6 +70,60 @@ export class SpatialHash {
     return j * this.bx + i;
   }
 
+  /** Candidate pairs found by the last collectPairs(): pairA[k], pairB[k] for k < pairCount. */
+  pairA = new Int32Array(0);
+  pairB = new Int32Array(0);
+  pairCount = 0;
+
+  /**
+   * List every unordered pair of cells closer than `reach`, visiting each pair once:
+   * pairs within a bin, plus pairs with the four "forward" neighbour bins
+   * (E, N, NE, NW) — the half-stencil. Call after build().
+   */
+  collectPairs(cells: CellStore, reach: number): void {
+    const { bx, by, start, items } = this;
+    const { px, py } = cells;
+    const r2 = reach * reach;
+    let count = 0;
+    const push = (a: number, b: number) => {
+      if (count === this.pairA.length) {
+        const grow = (old: Int32Array) => { const nw = new Int32Array(Math.max(1024, old.length * 2)); nw.set(old); return nw; };
+        this.pairA = grow(this.pairA);
+        this.pairB = grow(this.pairB);
+      }
+      this.pairA[count] = a;
+      this.pairB[count] = b;
+      count++;
+    };
+    for (let j = 0; j < by; j++) {
+      for (let i = 0; i < bx; i++) {
+        const b0 = j * bx + i;
+        for (let k = start[b0]; k < start[b0 + 1]; k++) {
+          const a = items[k];
+          const ax = px[a], ay = py[a];
+          // Same bin: later items only.
+          for (let m = k + 1; m < start[b0 + 1]; m++) {
+            const b = items[m];
+            const dx = px[b] - ax, dy = py[b] - ay;
+            if (dx * dx + dy * dy < r2) push(a, b);
+          }
+          // Forward neighbour bins.
+          for (let q = 0; q < 4; q++) {
+            const ni = i + FORWARD_DI[q], nj = j + FORWARD_DJ[q];
+            if (ni < 0 || ni >= bx || nj >= by) continue;
+            const b1 = nj * bx + ni;
+            for (let m = start[b1]; m < start[b1 + 1]; m++) {
+              const b = items[m];
+              const dx = px[b] - ax, dy = py[b] - ay;
+              if (dx * dx + dy * dy < r2) push(a, b);
+            }
+          }
+        }
+      }
+    }
+    this.pairCount = count;
+  }
+
   /**
    * Call fn(c, n) once for every unordered pair (c < n) in the same or adjacent bins.
    * Pairs farther apart than binSize may also be visited; callers check distance.
@@ -92,6 +150,13 @@ export class SpatialHash {
   }
 }
 
+// Half-stencil: E, NW, N, NE (with the bin itself this covers every adjacent pair once).
+const FORWARD_DI = [1, -1, 0, 1];
+const FORWARD_DJ = [0, 1, 1, 1];
+
+/** Upper limit on adaptive mechanics sub-steps per developmental step. */
+const MAX_SUBSTEPS = 60;
+
 /** Interaction cutoff: largest contact distance plus the adhesion range. */
 function cutoff(cells: CellStore, cfg: SimConfig): number {
   let rmax = 0;
@@ -107,19 +172,25 @@ function ramp(delta: number, range: number): number {
 /** Homophilic adhesion strength between cells c and n. */
 export function adhesion(grn: CompiledGRN, cells: CellStore, cfg: SimConfig, c: number, n: number): number {
   const G = grn.G, x = cells.x, adh = grn.adhIdx;
-  let A = cfg.adhesionBase;
+  let S = 0;
   for (let k = 0; k < adh.length; k++) {
     const g = adh[k];
     const a = x[c * G + g], b = x[n * G + g];
-    A += grn.binding[g] * (a < b ? a : b);
+    S += grn.binding[g] * (a < b ? a : b);
   }
-  return A;
+  return cfg.adhesionBase + S / (1 + S / cfg.adhesionMax);
+}
+
+/** Repulsive force for overlap δ > 0 at centre distance d (contact distance s = d + δ). */
+function repulsion(k: number, delta: number, d: number): number {
+  return (k * delta * (d + delta)) / (d > 1e-6 ? d : 1e-6);
 }
 
 export class Mechanics {
   private readonly hash = new SpatialHash();
   private fx = new Float64Array(0);
   private fy = new Float64Array(0);
+  private wsum = new Float64Array(0);
 
   constructor(
     private readonly cfg: SimConfig,
@@ -127,68 +198,99 @@ export class Mechanics {
     private readonly height: number,
   ) {}
 
-  /** Advance positions by one developmental step (cfg.mechanicsSubsteps sub-steps). */
+  /** Sub-steps used by the last step() (adaptive; for diagnostics). */
+  lastSubsteps = 0;
+  private stiff = new Float64Array(0);
+
+  /**
+   * Explicit (forward Euler) integration of a stiff gradient flow is stable only
+   * if Δt_sub < 2γ/λ_max, where λ_max is the largest eigenvalue of the contact
+   * stiffness matrix. We bound λ_max by 1.5 × the largest per-cell sum of contact
+   * stiffnesses (exact for a hexagonal lattice) and choose the number of sub-steps
+   * accordingly, never fewer than cfg.mechanicsSubsteps.
+   */
+  private substepsNeeded(cells: CellStore): number {
+    const cfg = this.cfg;
+    const { pairA, pairB, pairCount } = this.hash;
+    const { px, py, radius } = cells;
+    if (this.stiff.length < cells.capacity) this.stiff = new Float64Array(cells.capacity);
+    const stiff = this.stiff;
+    stiff.fill(0, 0, cells.n);
+    for (let k = 0; k < pairCount; k++) {
+      const a = pairA[k], b = pairB[k];
+      const dx = px[b] - px[a], dy = py[b] - py[a];
+      const d = Math.sqrt(dx * dx + dy * dy);
+      const sd = radius[a] + radius[b];
+      if (d >= sd) continue;
+      // |dF/dd| of the repulsion k·s·(s/d − 1) is k·s²/d².
+      const dm = d > 0.05 ? d : 0.05;
+      const kk = (cfg.repulsion * sd * sd) / (dm * dm);
+      stiff[a] += kk;
+      stiff[b] += kk;
+    }
+    let maxRow = 0;
+    for (let c = 0; c < cells.n; c++) if (stiff[c] > maxRow) maxRow = stiff[c];
+    const lambda = 1.5 * maxRow;
+    const n = Math.ceil((cfg.dt * lambda) / (1.6 * cfg.drag));
+    return Math.min(MAX_SUBSTEPS, Math.max(cfg.mechanicsSubsteps, n));
+  }
+
+  /** Advance positions by one developmental step (adaptive number of sub-steps). */
   step(grn: CompiledGRN, cells: CellStore, rng: Rng): void {
     const cfg = this.cfg;
     if (this.fx.length < cells.capacity) {
       this.fx = new Float64Array(cells.capacity);
       this.fy = new Float64Array(cells.capacity);
     }
-    const dt = cfg.dt / cfg.mechanicsSubsteps;
-    const mob = dt / cfg.drag;
-    // Brownian (motility) kicks are drawn once per developmental step with the
-    // full-step variance 2·k_BT·Δt/γ, then the force sub-steps relax any overlaps
-    // they create. Same statistics as kicking every sub-step, 5× fewer draws.
-    const kick = Math.sqrt((2 * cfg.motility * cfg.dt) / cfg.drag);
     const { fx, fy, hash } = this;
     const { px, py, radius, x } = cells;
-    const kRep = cfg.repulsion, range = cfg.adhesionRange, A0 = cfg.adhesionBase;
+    const kRep = cfg.repulsion, range = cfg.adhesionRange, A0 = cfg.adhesionBase, Amax = cfg.adhesionMax;
     const G = grn.G, adh = grn.adhIdx, nAdh = adh.length, J = grn.binding;
     const cut = cutoff(cells, cfg);
     const W = this.width, H = this.height;
 
-    for (let s = 0; s < cfg.mechanicsSubsteps; s++) {
+    hash.build(cells, W, H, cut);
+    hash.collectPairs(cells, cut);
+    const substeps = (this.lastSubsteps = this.substepsNeeded(cells));
+    const dt = cfg.dt / substeps;
+    const mob = dt / cfg.drag;
+    // Brownian (motility) kicks are drawn once per developmental step with the
+    // full-step variance 2·k_BT·Δt/γ, then the force sub-steps relax any overlaps
+    // they create. Same statistics as kicking every sub-step, far fewer draws.
+    const kick = Math.sqrt((2 * cfg.motility * cfg.dt) / cfg.drag);
+
+    for (let s = 0; s < substeps; s++) {
       const n = cells.n;
       fx.fill(0, 0, n);
       fy.fill(0, 0, n);
-      hash.build(cells, W, H, cut);
-      const { bx, by, start, items, binOf } = hash;
-      // Visit each unordered pair (a < b) in the same or adjacent bins once.
-      for (let a = 0; a < n; a++) {
-        const ba = binOf[a];
-        const bi = ba % bx, bj = (ba - bi) / bx;
-        const j0 = bj > 0 ? bj - 1 : 0, j1 = bj < by - 1 ? bj + 1 : bj;
-        const i0 = bi > 0 ? bi - 1 : 0, i1 = bi < bx - 1 ? bi + 1 : bi;
-        const ax = px[a], ay = py[a], ra = radius[a];
-        for (let j = j0; j <= j1; j++) {
-          for (let i = i0; i <= i1; i++) {
-            const nb = j * bx + i;
-            for (let k = start[nb]; k < start[nb + 1]; k++) {
-              const b = items[k];
-              if (b <= a) continue;
-              let dx = px[b] - ax, dy = py[b] - ay;
-              const sd = ra + radius[b];
-              const d2 = dx * dx + dy * dy;
-              const reach = sd + range;
-              if (d2 >= reach * reach) continue;
-              let d = Math.sqrt(d2);
-              if (d < 1e-9) { dx = 1; dy = 0; d = 1; } // coincident centres: separate along x
-              else { dx /= d; dy /= d; }
-              const delta = sd - d;
-              // Homophilic adhesion: A = A₀ + Σ_k J_k·min(a_k, b_k).
-              let A = A0;
-              for (let q = 0; q < nAdh; q++) {
-                const g = adh[q];
-                const va = x[a * G + g], vb = x[b * G + g];
-                A += J[g] * (va < vb ? va : vb);
-              }
-              const F = (delta > 0 ? kRep * delta : 0) - A * ramp(delta, range);
-              // F > 0 pushes a and b apart.
-              fx[a] -= F * dx; fy[a] -= F * dy;
-              fx[b] += F * dx; fy[b] += F * dy;
-            }
-          }
+      if (s > 0) {
+        hash.build(cells, W, H, cut);
+        hash.collectPairs(cells, cut);
+      }
+      const { pairA, pairB, pairCount } = hash;
+      for (let k = 0; k < pairCount; k++) {
+        const a = pairA[k], b = pairB[k];
+        let dx = px[b] - px[a], dy = py[b] - py[a];
+        const sd = radius[a] + radius[b];
+        const d2 = dx * dx + dy * dy;
+        const reach = sd + range;
+        if (d2 >= reach * reach) continue;
+        let d = Math.sqrt(d2);
+        if (d < 1e-9) { dx = 1; dy = 0; d = 1e-9; } // coincident centres: separate along x
+        else { dx /= d; dy /= d; }
+        const delta = sd - d;
+        // Homophilic adhesion: S = Σ_k J_k·min(a_k, b_k), saturating.
+        let S = 0;
+        for (let q = 0; q < nAdh; q++) {
+          const g = adh[q];
+          const va = x[a * G + g], vb = x[b * G + g];
+          S += J[g] * (va < vb ? va : vb);
         }
+        const A = A0 + S / (1 + S / Amax);
+        const F = (delta > 0 ? repulsion(kRep, delta, d) : 0) - A * ramp(delta, range);
+        // F > 0 pushes a and b apart.
+        fx[a] -= F * dx; fy[a] -= F * dy;
+        fx[b] += F * dx; fy[b] += F * dy;
       }
       for (let c = 0; c < n; c++) {
         // Soft walls keep cells inside the morphogen grid.
@@ -217,13 +319,19 @@ export class Mechanics {
     if (idx.length === 0) return;
     const G = grn.G, n = cells.n, { x, input, px, py, radius } = cells;
     const range = this.cfg.adhesionRange;
-    const wsum = new Float64Array(n);
+    if (this.wsum.length < cells.capacity) this.wsum = new Float64Array(cells.capacity);
+    const wsum = this.wsum;
+    wsum.fill(0, 0, n);
     for (let c = 0; c < n; c++) for (let k = 0; k < idx.length; k++) input[c * G + idx[k]] = 0;
-    this.hash.build(cells, this.width, this.height, cutoff(cells, this.cfg));
-    this.hash.forEachPair(cells, (a, b) => {
+    const cut = cutoff(cells, this.cfg);
+    this.hash.build(cells, this.width, this.height, cut);
+    this.hash.collectPairs(cells, cut);
+    const { pairA, pairB, pairCount } = this.hash;
+    for (let p = 0; p < pairCount; p++) {
+      const a = pairA[p], b = pairB[p];
       const dx = px[b] - px[a], dy = py[b] - py[a];
       const w = ramp(radius[a] + radius[b] - Math.sqrt(dx * dx + dy * dy), range);
-      if (w === 0) return;
+      if (w === 0) continue;
       wsum[a] += w;
       wsum[b] += w;
       for (let k = 0; k < idx.length; k++) {
@@ -231,7 +339,7 @@ export class Mechanics {
         input[a * G + j] += w * x[b * G + j];
         input[b * G + j] += w * x[a * G + j];
       }
-    });
+    }
     for (let c = 0; c < n; c++) {
       if (wsum[c] === 0) continue;
       for (let k = 0; k < idx.length; k++) {
@@ -251,8 +359,9 @@ export class Mechanics {
       const delta = cells.radius[a] + cells.radius[b] - Math.sqrt(dx * dx + dy * dy);
       if (delta <= -range) return;
       const A = adhesion(grn, cells, cfg, a, b);
-      // Potential whose negative derivative w.r.t. d is the force above.
-      if (delta >= 0) E += 0.5 * cfg.repulsion * delta * delta - A * (delta + range / 2);
+      // Potential U(d) with −dU/dd = F. Repulsion: U = k·s·(s·ln(s/d) − (s − d)) for d < s.
+      const s = cells.radius[a] + cells.radius[b], d = s - delta;
+      if (delta >= 0) E += cfg.repulsion * s * (s * log(s / d) - delta) - A * (delta + range / 2);
       else E += -A * ((delta + range) * (delta + range)) / (2 * range);
     });
     return E;

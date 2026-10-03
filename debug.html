@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EvoDevo debug</title>
+    <style>
+      :root { --bg: #fbfbfa; --fg: #1d1d1b; --muted: #6b6b66; --grid: #e4e4e0; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #171716; --fg: #ececea; --muted: #9a9a94; --grid: #2c2c2a; } }
+      body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+      h1 { font-size: 18px; margin: 0 0 4px; }
+      p.note { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
+      .controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-bottom: 12px; }
+      label { display: flex; gap: 6px; align-items: center; }
+      canvas { width: 100%; max-width: 960px; height: 360px; display: block; }
+      #stats { color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>Single-cell GRN dynamics (M1 debug view)</h1>
+    <p class="note">
+      Gene-circuit model, dx/dt = R·σ(Σ w·x + b) − λx. Pick a circuit and drag the repression weight across the
+      analytic bifurcation points: toggle switch becomes bistable at |w| = 4, repressilator oscillates for |w| &gt; 8.
+    </p>
+    <div class="controls">
+      <label>Circuit
+        <select id="circuit">
+          <option value="repressilator">Repressilator (A ⊣ B ⊣ C ⊣ A)</option>
+          <option value="toggle">Toggle switch (A ⊣ B, B ⊣ A)</option>
+          <option value="auto">Auto-activator (A → A)</option>
+          <option value="constitutive">Constitutive gene</option>
+        </select>
+      </label>
+      <label>|w| <input id="w" type="range" min="0" max="20" step="0.1" value="10" /> <span id="wv"></span></label>
+      <label>noise 1/√Ω <input id="noise" type="range" min="0" max="0.2" step="0.005" value="0" /> <span id="nv"></span></label>
+      <label>seed <input id="seed" type="number" value="1" style="width: 5em" /></label>
+    </div>
+    <canvas id="plot"></canvas>
+    <div id="stats"></div>
+    <script type="module" src="/src/debug/main.ts"></script>
+  </body>
+</html>

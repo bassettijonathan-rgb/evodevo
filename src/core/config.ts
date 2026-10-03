@@ -65,11 +65,16 @@ export interface SimConfig {
   repulsion: number;
   /** Non-specific adhesion A₀ (ECM, glycocalyx) [force]. */
   adhesionBase: number;
+  /**
+   * Saturation of specific (cadherin) adhesion: S = Σ J·min(a, b) becomes
+   * S/(1 + S/adhesionMax), since a contact has a finite number of bond sites.
+   */
+  adhesionMax: number;
   /** Range beyond contact over which adhesion fades to zero [ℓ]. */
   adhesionRange: number;
   /** Effective temperature of active motility noise, k_B·T_eff (D8). 0 = none. */
   motility: number;
-  /** Mechanics sub-steps per developmental step. */
+  /** Minimum mechanics sub-steps per developmental step (more are used automatically when contacts are stiff). */
   mechanicsSubsteps: number;
 
   // ---------------------------------------------------------------- limits and output
@@ -107,6 +112,7 @@ export const DEFAULT_CONFIG: Readonly<SimConfig> = Object.freeze({
   drag: 1,
   repulsion: 10,
   adhesionBase: 0.3,
+  adhesionMax: 1.5,
   adhesionRange: 0.25,
   motility: 0.002,
   mechanicsSubsteps: 5,

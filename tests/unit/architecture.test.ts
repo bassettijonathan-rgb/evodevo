@@ -31,4 +31,18 @@ describe('architecture', () => {
     }
     expect(violations).toEqual([]);
   });
+
+  it('simulation, metrics and evolution use only portable math (D13)', () => {
+    // Math.exp/log/sin/cos/pow/hypot… are not guaranteed bit-identical across JS engines.
+    // Only analysis/ (used by tests for theory predictions) may use them.
+    const offenders: string[] = [];
+    for (const file of tsFiles(CORE)) {
+      if (relative(CORE, file).startsWith('analysis')) continue;
+      const code = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ''); // strip comments
+      for (const m of code.matchAll(/Math\.(exp|expm1|log|log1p|log2|log10|pow|sin|cos|tan|asin|acos|atan|atan2|sinh|cosh|tanh|hypot|cbrt)\b/g)) {
+        offenders.push(`${relative(CORE, file)}: Math.${m[1]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });

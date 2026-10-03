@@ -10,7 +10,7 @@ import type { FinalSnapshot } from '../core/evolution/evaluate';
 import { ancestry, layoutTree } from '../core/evolution/phylogeny';
 import { genomeToJSON } from '../core/genome/serialize';
 import { viridisCss } from '../render/colormap';
-import { downloadText } from './files';
+import { offerText } from './files';
 import { lineageOf, phylo, sessionMeta, type SessionNode } from './session';
 import { breedFrom, openInLab, pool } from './state';
 import { Thumb } from './Thumb';
@@ -100,8 +100,8 @@ function NodeDetail({ node }: { node: SessionNode }) {
           <div class="row">
             <button class="primary" onClick={() => openInLab({ genome: node.genome, config: node.sim, seed: node.seed, label: `organism #${node.id}` })}>Inspect in lab</button>
             <button onClick={() => breedFrom(node)}>Breed from here</button>
-            <button onClick={() => downloadText(`organism-${node.id}.genome.json`, JSON.stringify({ genome: JSON.parse(genomeToJSON(node.genome)), config: node.sim }, null, 2))}>Save genome</button>
-            <button onClick={() => downloadText(`lineage-${node.id}.json`, JSON.stringify(lineage.map((n) => ({ id: n.id, generation: n.generation, parents: n.parents, mutations: n.log, metrics: n.metrics, genome: JSON.parse(genomeToJSON(n.genome)) })), null, 2))}>Export lineage</button>
+            <button onClick={() => offerText(`organism-${node.id}.genome.json`, JSON.stringify({ genome: JSON.parse(genomeToJSON(node.genome)), config: node.sim }, null, 2))}>Save genome</button>
+            <button onClick={() => offerText(`lineage-${node.id}.json`, JSON.stringify(lineage.map((n) => ({ id: n.id, generation: n.generation, parents: n.parents, mutations: n.log, metrics: n.metrics, genome: JSON.parse(genomeToJSON(n.genome)) })), null, 2))}>Export lineage</button>
           </div>
         </div>
       </div>

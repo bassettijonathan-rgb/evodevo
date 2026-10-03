@@ -12,7 +12,8 @@ const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM ? { execut
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
-page.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test(m.text())) errors.push(m.text()); });
+const externalFont = (url = '') => /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url); // optional; blocked in some sandboxes
+page.on('console', (m) => { if (m.type() === 'error' && !/favicon/.test(m.text()) && !externalFont(m.location().url)) errors.push(`${m.text()} @ ${m.location().url}`); });
 const idle = () => page.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 300_000 });
 const step = async (name, fn) => { process.stdout.write(`• ${name} … `); await fn(); console.log('ok'); };
 
@@ -61,6 +62,17 @@ try {
     await page.waitForSelector('.phylo svg .pnode');
     await page.locator('.phylo .pnode').last().click();
     await page.waitForSelector('text=Breed from here');
+  });
+  await step('fallback: breeding still works when Web Workers are unavailable', async () => {
+    const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    p2.on('pageerror', (e) => errors.push(String(e)));
+    await p2.addInitScript(() => { delete window.Worker; });
+    await p2.goto(base);
+    await p2.click('button:text-is("Start")');
+    await p2.waitForSelector('.grid .card canvas', { timeout: 300_000 });
+    await p2.waitForFunction(() => !document.querySelector('.busy'), null, { timeout: 300_000 });
+    if ((await p2.locator('.grid .card').count()) !== 12) throw new Error('expected 12 organisms');
+    await p2.close();
   });
   if (errors.length) throw new Error(`page errors:\n${errors.join('\n')}`);
   console.log('E2E passed');

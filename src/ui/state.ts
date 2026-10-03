@@ -3,7 +3,7 @@
  * when it changes; actions below are the only places that write.
  */
 import { computed, signal } from '@preact/signals';
-import type { EvalResult } from '../core/evolution/evaluate';
+import { evaluate, type EvalResult } from '../core/evolution/evaluate';
 import { Evolution, type FitnessTerm, type Individual } from '../core/evolution/population';
 import { compileGenome, type CompiledGRN } from '../core/genome/compile';
 import { cloneGenome, genomeHash as hashOf } from '../core/genome/serialize';
@@ -21,7 +21,7 @@ export const page = signal<Page>('breed');
 
 let poolInstance: EvalPool | null = null;
 export function pool(): EvalPool {
-  poolInstance ??= browserPool();
+  poolInstance ??= browserPool(evaluate);
   return poolInstance;
 }
 

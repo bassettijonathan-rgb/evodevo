@@ -1,4 +1,5 @@
 import { Breed } from './Breed';
+import { ExportPanel } from './ExportPanel';
 import { Lab } from './Lab';
 import { Phylogeny } from './Phylogeny';
 import { page, type Page } from './state';
@@ -22,6 +23,7 @@ export function App() {
         {page.value === 'lab' && <Lab />}
         {page.value === 'phylogeny' && <Phylogeny />}
       </main>
+      <ExportPanel />
     </>
   );
 }

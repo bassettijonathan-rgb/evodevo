@@ -17,7 +17,25 @@ import {
   busy, frameIndex, growLab, labGRN, labResult, labSubject, lockedGenes, openInLab, perturbations, perturbedResult,
   presetSubject, regrowPerturbed, selectedGene,
 } from './state';
-import { downloadText, pickTextFile } from './files';
+import { offerText, pickTextFile } from './files';
+
+const pasteOpen = signal(false);
+const pasteText = signal('');
+const loadError = signal<string | null>(null);
+
+/** Load a genome from JSON text (either a bare genome or { genome, config }). */
+async function loadGenomeText(text: string): Promise<void> {
+  const subject = labSubject.value!;
+  try {
+    const parsed = JSON.parse(text);
+    const genome = genomeFromJSON(JSON.stringify(parsed.genome ?? parsed));
+    loadError.value = null;
+    pasteOpen.value = false;
+    await openInLab({ ...subject, genome, config: parsed.config ?? subject.config, label: 'loaded genome', initial: undefined });
+  } catch (e) {
+    loadError.value = (e as Error).message;
+  }
+}
 
 const overlay = signal<Overlay>({ colour: 'type', gene: 0, field: null, polarity: false, fit: 'cells' });
 const playing = signal(false);
@@ -75,18 +93,19 @@ export function Lab() {
           <b>{subject.label}</b>
           <span class="muted">{subject.genome.genes.length} genes</span>
           <PresetPicker />
-          <button onClick={() => downloadText(`${subject.label.replace(/\W+/g, '-')}.genome.json`, genomeToJSON(subject.genome))}>Save genome</button>
-          <button onClick={async () => {
-            const text = await pickTextFile();
-            if (!text) return;
-            try {
-              const parsed = JSON.parse(text);
-              const genome = genomeFromJSON(JSON.stringify(parsed.genome ?? parsed));
-              await openInLab({ ...subject, genome, config: parsed.config ?? subject.config, label: 'loaded genome', initial: undefined });
-            } catch (e) { alert(`Could not load genome: ${(e as Error).message}`); }
-          }}>Load genome</button>
+          <button onClick={() => offerText(`${subject.label.replace(/\W+/g, '-')}.genome.json`, genomeToJSON(subject.genome))}>Save genome</button>
+          <button onClick={async () => { const text = await pickTextFile(); if (text) await loadGenomeText(text); }}>Load genome file</button>
+          <button onClick={() => { pasteOpen.value = !pasteOpen.value; }}>Paste genome</button>
           {busy.value && <span class="busy" role="status">{busy.value}</span>}
         </div>
+        {pasteOpen.value && (
+          <div class="row paste">
+            <label for="paste-genome" class="small">Paste genome JSON</label>
+            <textarea id="paste-genome" rows={3} value={pasteText.value} onInput={(e) => { pasteText.value = (e.target as HTMLTextAreaElement).value; }} />
+            <button class="primary" disabled={!pasteText.value.trim()} onClick={() => loadGenomeText(pasteText.value)}>Load</button>
+          </div>
+        )}
+        {loadError.value && <p class="error" role="alert">Could not load that genome: {loadError.value}. Check that it is a genome JSON saved from this app.</p>}
       </section>
 
       <div class="lab-main">

@@ -267,10 +267,13 @@ export class Mechanics {
     // they create. Same statistics as kicking every sub-step, far fewer draws.
     const kick = Math.sqrt((2 * cfg.motility * cfg.dt) / cfg.drag);
 
+    const pressure = cells.pressure;
     for (let s = 0; s < substeps; s++) {
       const n = cells.n;
+      const last = s === substeps - 1;
       fx.fill(0, 0, n);
       fy.fill(0, 0, n);
+      if (last) pressure.fill(0, 0, n);
       if (s > 0) {
         let moved = 0;
         for (let c = 0; c < n; c++) {
@@ -300,7 +303,9 @@ export class Mechanics {
           S += J[g] * (va < vb ? va : vb);
         }
         const A = A0 + S / (1 + S / Amax);
-        const F = (delta > 0 ? repulsion(kRep, delta, d) : 0) - A * ramp(delta, range);
+        const Frep = delta > 0 ? repulsion(kRep, delta, d) : 0;
+        const F = Frep - A * ramp(delta, range);
+        if (last && F > 0) { pressure[a] += F; pressure[b] += F; } // net compression only
         // F > 0 pushes a and b apart.
         fx[a] -= F * dx; fy[a] -= F * dy;
         fx[b] += F * dx; fy[b] += F * dy;

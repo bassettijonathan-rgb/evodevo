@@ -35,6 +35,8 @@ export class CellStore {
   readonly death: Float64Array;
   readonly diff: Float64Array;
   readonly postmitotic: Uint8Array;
+  /** Mechanical pressure: summed repulsive (compressive) contact force at the last mechanics sub-step. */
+  readonly pressure: Float64Array;
 
   /** Gene product concentrations x[c*G + i]. */
   readonly x: Float64Array;
@@ -64,6 +66,7 @@ export class CellStore {
     this.death = f64();
     this.diff = f64();
     this.postmitotic = new Uint8Array(capacity);
+    this.pressure = f64();
     this.x = new Float64Array(capacity * G);
     this.input = new Float64Array(capacity * G);
   }
@@ -95,6 +98,7 @@ export class CellStore {
     this.death[c] = 0;
     this.diff[c] = 0;
     this.postmitotic[c] = 0;
+    this.pressure[c] = 0;
     this.x.fill(0, c * this.G, (c + 1) * this.G);
     this.input.fill(0, c * this.G, (c + 1) * this.G);
     return c;
@@ -123,6 +127,7 @@ export class CellStore {
     this.death[to] = this.death[from];
     this.diff[to] = this.diff[from];
     this.postmitotic[to] = this.postmitotic[from];
+    this.pressure[to] = this.pressure[from];
     const G = this.G;
     this.x.copyWithin(to * G, from * G, (from + 1) * G);
     this.input.copyWithin(to * G, from * G, (from + 1) * G);

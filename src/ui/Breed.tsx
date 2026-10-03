@@ -12,7 +12,7 @@ import { Thumb } from './Thumb';
 import { useEffect } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { loadSavedSession } from './session';
-import { resumeSession } from './state';
+import { lockedGenes, resumeSession } from './state';
 
 const savedSession = signal<{ generation: number; savedAt: number } | null>(null);
 import { Sparkline } from './Sparkline';
@@ -58,6 +58,9 @@ export function Breed() {
             <button class="primary" onClick={breedNext} disabled={!chosen.value.length || !!busy.value}>
               Breed {chosen.value.length === 2 ? 'the pair (crossover)' : 'selected'}
             </button>
+            {lockedGenes.value.length > 0 && (
+              <span class="muted small">{lockedGenes.value.length} gene{lockedGenes.value.length > 1 ? 's' : ''} locked <button class="icon" onClick={() => { lockedGenes.value = []; }}>unlock all</button></span>
+            )}
             <button disabled={chosen.value.length !== 1 || !!busy.value} onClick={() => {
               const ind = pop.find((i) => i.id === chosen.value[0])!;
               openInLab(individualSubject(ind, evo.settings.sim, evo.seedFor(ind)));

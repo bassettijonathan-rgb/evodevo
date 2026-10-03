@@ -8,7 +8,8 @@ import { typeColor } from './palette';
 export type CellColouring =
   | { kind: 'type'; typeOf: Int32Array }
   | { kind: 'gene'; gene: number; max: number }
-  | { kind: 'lineage' };
+  | { kind: 'lineage' }
+  | { kind: 'pressure'; max: number };
 
 export interface DrawOptions {
   /** Width and height of the canvas in CSS pixels. */
@@ -103,6 +104,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, frame: Frame, G: number
       case 'type': fill = typeColor(o.colouring.typeOf[c] ?? -1); break;
       case 'gene': fill = viridisCss(frame.x[c * G + o.colouring.gene] / (o.colouring.max || 1)); break;
       case 'lineage': fill = idColor(frame.founderId[c]); break;
+      case 'pressure': fill = viridisCss((frame.pressure?.[c] ?? 0) / (o.colouring.max || 1)); break;
     }
     const [x, y] = toScreen(v, frame.px[c], frame.py[c]);
     ctx.beginPath();

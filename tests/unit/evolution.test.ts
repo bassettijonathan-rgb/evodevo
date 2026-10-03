@@ -158,3 +158,16 @@ describe('evolution loop', () => {
     }
   });
 });
+
+describe('locked genes', () => {
+  it('mutation never touches a locked gene', () => {
+    const g = frenchFlag();
+    const lockedNames = ['S', 'M', 'B']; // their inputs come only from locked genes
+    const locked = lockedNames.map((n) => geneId(g, n));
+    const settings = { ...DEFAULT_MUTATION, locked, rates: Object.fromEntries(Object.entries(DEFAULT_MUTATION.rates).map(([k, v]) => [k, v * 4])) as unknown as typeof DEFAULT_MUTATION.rates };
+    const rng = new Rng('lock');
+    let cur = g;
+    for (let i = 0; i < 400; i++) cur = mutate(cur, rng, settings).genome;
+    for (const id of locked) expect(cur.genes.find((x) => x.id === id)).toEqual(g.genes.find((x) => x.id === id));
+  });
+});

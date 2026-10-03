@@ -18,6 +18,8 @@ export interface Frame {
   polY: Float32Array;
   radius: Float32Array;
   postmitotic: Uint8Array;
+  /** Summed compressive contact force per cell (mechanical pressure). */
+  pressure: Float32Array;
   /** n × G expression levels, row-major. */
   x: Float32Array;
   /** M × nx × ny morphogen fields (empty if fields were not recorded). */
@@ -39,6 +41,7 @@ export function snapshot(t: number, cells: CellStore, grid: MorphogenGrid | null
     polY: f32(cells.polY),
     radius: f32(cells.radius),
     postmitotic: cells.postmitotic.slice(0, n),
+    pressure: f32(cells.pressure),
     x: Float32Array.from(cells.x.subarray(0, n * cells.G)),
     fields: grid && withFields ? Float32Array.from(grid.c) : new Float32Array(0),
   };

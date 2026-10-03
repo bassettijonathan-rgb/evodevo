@@ -51,6 +51,8 @@ export interface MutationSettings {
   duplicationDosage: 'neutral' | 'double';
   maxGenes: number;
   maxMorphogens: number;
+  /** Genes (by id) that mutation must not touch: their parameters, inputs, type, or existence. */
+  locked?: GeneId[];
 }
 
 export const DEFAULT_MUTATION: MutationSettings = {
@@ -168,11 +170,13 @@ export function deleteGene(genome: Genome, id: GeneId): Genome {
 
 type Operator = (g: Genome, rng: Rng, s: MutationSettings) => { genome: Genome; log: string } | null;
 
-const pickGene = (g: Genome, rng: Rng) => (g.genes.length ? rng.pick(g.genes) : null);
+/** Genes that mutation may modify (everything except locked genes). */
+const mutable = (g: Genome, s: MutationSettings) => (s.locked?.length ? g.genes.filter((x) => !s.locked!.includes(x.id)) : g.genes);
+const pickGene = (g: Genome, rng: Rng, s: MutationSettings) => { const m = mutable(g, s); return m.length ? rng.pick(m) : null; };
 
 const mutateWeight: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const withSites = g.genes.filter((x) => x.sites.length);
+  const withSites = mutable(g, s).filter((x) => x.sites.length);
   if (!withSites.length) return null;
   const gene = rng.pick(withSites);
   const site = rng.pick(gene.sites);
@@ -183,7 +187,7 @@ const mutateWeight: Operator = (genome, rng, s) => {
 
 const mutateParameter: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const gene = pickGene(g, rng);
+  const gene = pickGene(g, rng, s);
   if (!gene) return null;
   const options: string[] = ['bias', 'rate', 'decay', 'asymmetry', 'maternal'];
   if (gene.type === 'morphogen') options.push('diffusion', 'secretion', 'fieldDecay');
@@ -215,7 +219,7 @@ const mutateParameter: Operator = (genome, rng, s) => {
 
 const gainSite: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const target = pickGene(g, rng);
+  const target = pickGene(g, rng, s);
   if (!target) return null;
   // Mostly pick real regulators; occasionally a cryptic (non-regulator) site.
   const regs = g.genes.filter((x) => isRegulatorType(x.type));
@@ -228,9 +232,9 @@ const gainSite: Operator = (genome, rng, s) => {
   return { genome: g, log: `+site[${target.name}←${reg.name}] ${weight.toFixed(2)}` };
 };
 
-const loseSite: Operator = (genome, rng) => {
+const loseSite: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const withSites = g.genes.filter((x) => x.sites.length);
+  const withSites = mutable(g, s).filter((x) => x.sites.length);
   if (!withSites.length) return null;
   const gene = rng.pick(withSites);
   const k = rng.int(gene.sites.length);
@@ -238,9 +242,9 @@ const loseSite: Operator = (genome, rng) => {
   return { genome: g, log: `−site[${gene.name}←${nameOf(g, site.regulator)}]` };
 };
 
-const rewire: Operator = (genome, rng) => {
+const rewire: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const withSites = g.genes.filter((x) => x.sites.length);
+  const withSites = mutable(g, s).filter((x) => x.sites.length);
   if (!withSites.length) return null;
   const gene = rng.pick(withSites);
   const site = rng.pick(gene.sites);
@@ -254,7 +258,7 @@ const rewire: Operator = (genome, rng) => {
 
 const duplicateOne: Operator = (genome, rng, s) => {
   if (genome.genes.length >= s.maxGenes) return null;
-  const gene = pickGene(genome, rng);
+  const gene = pickGene(genome, rng, s);
   if (!gene) return null;
   if (gene.type === 'morphogen' && morphogenCount(genome) >= s.maxMorphogens) return null;
   return { genome: duplicateGenes(genome, [gene.id], s.duplicationDosage), log: `dup[${gene.name}]` };
@@ -266,6 +270,7 @@ const duplicateSegment: Operator = (genome, rng, s) => {
   if (n < len || n + len > s.maxGenes) return null;
   const start = rng.int(n - len + 1);
   const block = genome.genes.slice(start, start + len);
+  if (block.some((x) => s.locked?.includes(x.id))) return null;
   if (morphogenCount(genome) + block.filter((x) => x.type === 'morphogen').length > s.maxMorphogens) return null;
   return {
     genome: duplicateGenes(genome, block.map((x) => x.id), s.duplicationDosage),
@@ -274,19 +279,21 @@ const duplicateSegment: Operator = (genome, rng, s) => {
 };
 
 const duplicateGenome: Operator = (genome, _rng, s) => {
+  if (s.locked?.length) return null; // would halve the dosage of locked genes
   if (genome.genes.length * 2 > s.maxGenes || morphogenCount(genome) * 2 > s.maxMorphogens) return null;
   return { genome: duplicateGenes(genome, genome.genes.map((x) => x.id), s.duplicationDosage), log: 'WGD' };
 };
 
-const deletion: Operator = (genome, rng) => {
+const deletion: Operator = (genome, rng, s) => {
   if (genome.genes.length <= 1) return null;
-  const gene = pickGene(genome, rng)!;
+  const gene = pickGene(genome, rng, s);
+  if (!gene) return null;
   return { genome: deleteGene(genome, gene.id), log: `del[${gene.name}]` };
 };
 
 const typeSwitch: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const gene = pickGene(g, rng);
+  const gene = pickGene(g, rng, s);
   if (!gene) return null;
   const choices = PRODUCT_TYPES.filter(
     (t) => t !== gene.type && !(t === 'morphogen' && morphogenCount(g) >= s.maxMorphogens),
@@ -309,9 +316,9 @@ const typeSwitch: Operator = (genome, rng, s) => {
   return { genome: g, log: `type[${gene.name}] ${from}→${to}` };
 };
 
-const effectorChange: Operator = (genome, rng) => {
+const effectorChange: Operator = (genome, rng, s) => {
   const g = cloneGenome(genome);
-  const effs = g.genes.filter((x) => x.type === 'effector');
+  const effs = mutable(g, s).filter((x) => x.type === 'effector');
   if (!effs.length) return null;
   const gene = rng.pick(effs);
   const morphs = g.genes.filter((x) => x.type === 'morphogen');

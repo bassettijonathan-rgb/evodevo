@@ -10,7 +10,7 @@ import type { Frame } from '../core/sim/recorder';
 import { drawFrame, toWorld, type CellColouring, type ViewTransform } from '../render/canvas';
 
 export interface Overlay {
-  colour: 'type' | 'gene' | 'lineage';
+  colour: 'type' | 'gene' | 'lineage' | 'pressure';
   gene: number;
   field: number | null;
   polarity: boolean;
@@ -42,6 +42,11 @@ export function EmbryoView({ frame, grn, grid, overlay, size, region, onPick, ty
     let colouring: CellColouring;
     if (overlay.colour === 'gene') colouring = { kind: 'gene', gene: overlay.gene, max: grn.maxLevel[overlay.gene] };
     else if (overlay.colour === 'lineage') colouring = { kind: 'lineage' };
+    else if (overlay.colour === 'pressure') {
+      let max = 0;
+      for (let c = 0; c < frame.n; c++) max = Math.max(max, frame.pressure?.[c] ?? 0);
+      colouring = { kind: 'pressure', max };
+    }
     else colouring = { kind: 'type', typeOf: typeOf ?? assignTypes({ n: frame.n, px: frame.px, py: frame.py, x: frame.x, grn }).typeOf };
     const bg = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim() || '#fff';
     view.current = drawFrame(ctx, frame, grn.G, {

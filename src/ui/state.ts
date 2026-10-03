@@ -44,6 +44,12 @@ export const DEFAULT_TERMS: FitnessTerm[] = [
   { metric: 'cellTypes', mode: 'maximize', target: 6, weight: 1 },
 ];
 export const fitnessTerms = signal<FitnessTerm[]>(DEFAULT_TERMS);
+/** Gene ids that mutation must not touch while breeding (set from the lab's gene panel). */
+export const lockedGenes = signal<number[]>([]);
+
+function applyLocks(evo: Evolution): void {
+  evo.settings.mutation = { ...evo.settings.mutation, locked: lockedGenes.value };
+}
 
 function breedSim(p: Preset): Partial<SimConfig> {
   return { ...p.config, recordEvery: 0 };
@@ -124,6 +130,7 @@ export async function breedNext(): Promise<void> {
   const evo = evolution.value;
   if (!evo || !chosen.value.length) return;
   const parents = evo.population.filter((i) => chosen.value.includes(i.id));
+  applyLocks(evo);
   evo.advanceFrom(parents, mutationScale.value);
   chosen.value = [];
   busy.value = 'Growing offspring…';
@@ -147,6 +154,7 @@ export async function runTargetSelection(generations: number): Promise<void> {
     seed: `target-${Date.now()}`,
   }, { startId: evo.nextIndividualId, founderParents: parents.map((i) => [i.id]), startGeneration: evo.generation + 1 });
   // One phylogeny: the new run continues the lineage of the chosen parents.
+  applyLocks(target);
   evolution.value = target;
   chosen.value = [];
   autoRunning.value = true;

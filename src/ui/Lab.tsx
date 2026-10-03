@@ -14,7 +14,7 @@ import { PRESETS } from '../presets';
 import { EmbryoView, type Overlay } from './EmbryoView';
 import { GrnView } from './GrnView';
 import {
-  busy, frameIndex, growLab, labGRN, labResult, labSubject, openInLab, perturbations, perturbedResult,
+  busy, frameIndex, growLab, labGRN, labResult, labSubject, lockedGenes, openInLab, perturbations, perturbedResult,
   presetSubject, regrowPerturbed, selectedGene,
 } from './state';
 import { downloadText, pickTextFile } from './files';
@@ -129,7 +129,7 @@ export function Lab() {
           <div class="row">
             <label>Colour cells by
               <select value={ov.colour} onChange={(e) => { overlay.value = { ...ov, colour: (e.target as HTMLSelectElement).value as Overlay['colour'] }; }}>
-                <option value="type">cell type</option><option value="gene">expression of a gene</option><option value="lineage">lineage (8-cell founders)</option>
+                <option value="type">cell type</option><option value="gene">expression of a gene</option><option value="lineage">lineage (8-cell founders)</option><option value="pressure">mechanical pressure</option>
               </select>
             </label>
             {ov.colour === 'gene' && (
@@ -170,6 +170,10 @@ export function Lab() {
                 {gene.asymmetry ? ` · asymmetry ${gene.asymmetry.toFixed(2)}` : ''}
                 {gene.type === 'morphogen' ? ` · D ${gene.diffusion!.toFixed(2)} · k ${gene.fieldDecay!.toFixed(3)} · L = ${Math.sqrt(gene.diffusion! / gene.fieldDecay!).toFixed(1)}ℓ` : ''}
                 {gene.binding !== undefined && (gene.type === 'adhesion' || gene.type === 'contact') ? ` · binding ${gene.binding.toFixed(2)}` : ''}</p>
+              <label class="small"><input type="checkbox" checked={lockedGenes.value.includes(gene.id)} onChange={(e) => {
+                const on = (e.target as HTMLInputElement).checked;
+                lockedGenes.value = on ? [...lockedGenes.value, gene.id] : lockedGenes.value.filter((id) => id !== gene.id);
+              }} /> locked during breeding (mutations skip this gene)</label>
               <p class="small">Inputs: {gene.sites.length ? gene.sites.map((s) => `${subject.genome.genes.find((g) => g.id === s.regulator)?.name} (${s.weight > 0 ? '+' : ''}${s.weight.toFixed(1)})`).join(', ') : 'none'}</p>
               <div class="row">
                 <button onClick={() => addPerturbation({ gene: gene.id, mode: 'knockout' })}>Knock out</button>

@@ -50,6 +50,12 @@ try {
     await idle();
     await page.waitForSelector('text=Compared with the wild type');
   });
+  await step('lab: pressure overlay and gene lock', async () => {
+    await page.selectOption('label:has-text("Colour cells by") select', 'pressure');
+    await page.check('label:has-text("locked during breeding") input');
+    await page.click('nav button:text-is("Breed")');
+    await page.waitForSelector('text=1 gene locked');
+  });
   await step('phylogeny: tree and node detail', async () => {
     await page.click('nav button:text-is("Phylogeny")');
     await page.waitForSelector('.phylo svg .pnode');
